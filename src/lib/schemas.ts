@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { endpointSchema } from "./housing/applyhome";
 
 const httpUrl = z
   .url()
@@ -35,3 +36,36 @@ export const categoryReorderSchema = z.object({
 });
 
 export const idParamSchema = z.coerce.number().int().positive();
+
+// --- Housing (청약, step 9) ---
+
+const endpointField = endpointSchema;
+
+const keywordsField = z
+  .array(z.string().trim().min(1).max(50))
+  .max(30)
+  .transform((ks) => [...new Set(ks)]);
+
+export const housingFeedCreateSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  endpoint: endpointField,
+  active: z.boolean().default(true),
+});
+
+export const housingFeedUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
+  endpoint: endpointField.optional(),
+  active: z.boolean().optional(),
+});
+
+export const housingCategoryCreateSchema = z.object({
+  name: z.string().trim().min(1).max(50),
+  description: z.string().trim().max(500).default(""),
+  keywords: keywordsField.default([]),
+});
+
+export const housingCategoryUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(50).optional(),
+  description: z.string().trim().max(500).optional(),
+  keywords: keywordsField.optional(),
+});

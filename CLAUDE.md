@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Roadmap steps 1–2 are done (setup; source/category CRUD with admin UI). `src/app/page.tsx` is still the create-next-app sample. `PRD.md` (Korean) is the source of truth for features, data model (section 5), roadmap (section 8) and open questions (section 11). Implement only when the user says so, one roadmap step at a time.
+Roadmap steps 1–2 and 9 are done (setup; source/category CRUD with admin UI; 청약 notices). All PRD tables exist and migrations 0000–0003 are applied to Neon; step 9 still needs a live API check. `src/app/page.tsx` is still the create-next-app sample. `PRD.md` (Korean) is the source of truth for features, data model (section 5), roadmap (section 8) and open questions (section 11). Implement only when the user says so, one roadmap step at a time.
 
 ## Commands
 
@@ -12,7 +12,7 @@ Roadmap steps 1–2 are done (setup; source/category CRUD with admin UI). `src/a
 - `npm run lint` (ESLint 9, flat config)
 - `npm test` (vitest run); single test: `npx vitest run path/to/file.test.ts -t "name"`
 - `npm run test:e2e` (Playwright; run `npx playwright install` once first)
-- `npm run db:generate` / `npm run db:migrate` (drizzle-kit reads `DATABASE_URL` from the shell env, not `.env.local`; e.g. `node --env-file=.env.local node_modules/drizzle-kit/bin.cjs migrate`). Migrations live in `drizzle/`.
+- `npm run db:generate` / `npm run db:migrate` (`drizzle.config.ts` loads `.env.local` itself via `process.loadEnvFile`; shell env wins). Migrations live in `drizzle/`.
 
 ## Stack and gotchas
 
@@ -23,14 +23,21 @@ Roadmap steps 1–2 are done (setup; source/category CRUD with admin UI). `src/a
 
 ## Planned architecture (from PRD)
 
-- Neon Postgres + Drizzle; tables: sources, categories, articles (url UNIQUE), saved_articles, push_subscriptions, notification_settings. `user_id` is nullable everywhere so Clerk can be added later (step 8).
+- Neon Postgres + Drizzle; tables: sources, categories, articles (url UNIQUE), saved_articles, push_subscriptions, notification_settings, housing_notices (step 9, external_id UNIQUE).
+- Housing (PRD v0.2, F11): real-estate policy news is just RSS sources + a category (no new code). 청약 notices come from the data.go.kr 청약홈 open API (server-side key), are stored as structured rows, and never go through Claude. No recommendation or price-outlook wording. `user_id` is nullable everywhere so Clerk can be added later (step 8).
 - Fetch flow: Route Handler pulls active RSS sources, dedupes by URL, sends only new articles to Claude in batches for Korean title, summary and category, validates the response with Zod, then saves. Never re-call Claude for stored articles.
 - Sources, categories and notification settings are DB rows managed through admin UI/API, never hardcoded. Admin APIs need a minimal secret-token guard until login exists.
 - Product constraints: show only summary plus original link (no full article text); polite Korean "~해요" copy; no investment or political-judgment wording; mobile-first (about 380px, centred 480–560px max width).
 
 ## Implemented (step 2)
 
-- `src/db/schema.ts` has only `sources` and `categories` so far. `getDb()` in `src/db/index.ts` is lazy, so builds work without `DATABASE_URL`.
+- `src/db/schema.ts` defines every PRD table (`articles`, `saved_articles`, `push_subscriptions`, `notification_settings` added in `drizzle/0003_core_tables.sql`, tables only, no feature code yet). `articles.category_id` is `ON DELETE SET NULL` (null = 미분류); `saved_articles` is UNIQUE NULLS NOT DISTINCT on (article_id, user_id); `notification_settings.rule` is open jsonb until the alert rules are decided. `getDb()` in `src/db/index.ts` is lazy, so builds work without `DATABASE_URL`.
 - `src/app/api/{sources,categories}` Route Handlers use Zod schemas from `src/lib/schemas.ts` and helpers from `src/lib/api.ts`. Every handler starts with `requireAdmin()` (`x-admin-token` header vs `ADMIN_TOKEN`; 503 if unset). Source create/update validates the RSS via `src/lib/rss.ts` (`rss-parser`).
 - `src/app/admin/**` are client pages; the token is typed into the page and kept in `sessionStorage` (`admin-api.tsx`).
-- Step 3 TODO: `articles.category_id` FK must be `ON DELETE SET NULL` so a deleted category falls back to "미분류".
+## Implemented (step 9, 청약)
+
+- Key: `DATA_GO_KR_SERVICE_KEY` (Decoding key), read only via `getDataGoKrServiceKey()` in `src/lib/data-go-kr.ts` (503 if unset).
+- Tables `housing_feeds` (API operations), `housing_categories` (keywords[], sort_order = match priority), `housing_notices`. Defaults are seeded by `drizzle/0002_housing_seed.sql`, not code.
+- `src/lib/housing/`: `applyhome.ts` (api.odcloud.kr client + tolerant field mapper, raw row kept), `classify.ts` (pure keyword rule), `sync.ts` (fetch → upsert → `reclassifyHousingNotices`), `queries.ts`, `status.ts`. Any category/feed mutation calls `reclassifyHousingNotices`.
+- Field names in `mapNotice` were written from the public API docs and not yet checked against a live response.
+- Routes: `/api/housing/{feeds,categories,fetch}` (admin) and `/api/housing/notices/[id]/ics` (public). Pages: `/housing` (server, Suspense for searchParams/DB because `cacheComponents` is on), `/admin/housing-{feeds,categories}`.
