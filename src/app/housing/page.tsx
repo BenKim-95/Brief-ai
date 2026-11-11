@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { getDb, hasDatabaseUrl } from "@/db";
 import {
@@ -75,6 +76,8 @@ async function Notices({ searchParams }: { searchParams: Promise<Search> }) {
     );
   }
   const db = getDb();
+  // "Today" must be computed per request, not baked into the prerender.
+  await connection();
   const today = todayKst();
   const rawCategory = one(sp.category);
   const category =
