@@ -10,6 +10,11 @@ function createDb() {
   return drizzle(neon(url), { schema });
 }
 
+/** False until DATABASE_URL is set; lets pages show a setup hint instead of crashing. */
+export function hasDatabaseUrl() {
+  return !!process.env.DATABASE_URL;
+}
+
 export function getDb() {
   return (_db ??= createDb());
 }
