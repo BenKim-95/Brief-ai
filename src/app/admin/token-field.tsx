@@ -10,7 +10,7 @@ export function TokenField() {
       <input
         type="password"
         value={token}
-        onChange={(e) => setToken(e.target.value)}
+        onChange={(e) => setToken(e.target.value.trim())}
         className="mt-1 block min-h-11 w-full rounded border px-3 text-base"
         autoComplete="off"
       />

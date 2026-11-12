@@ -128,3 +128,67 @@
     @apply font-sans;
   }
 }
+
+/* ---- 브리프 디자인 토큰 (design/DESIGN.md). shadcn 변수도 같은 색으로 맞춰요. ---- */
+:root {
+  --app: #f1f3f2;
+  --surface: #ffffff;
+  --surface2: #f5f7f6;
+  --ink: #17262b;
+  --sub: #62737a;
+  --line: #dde3e0;
+  --brand: #0e6b66;
+  --brand-weak: #dfefec;
+  --urgent: #b4410e;
+  --fore: #8a6a10;
+  --ok: #1f7a4a;
+  --no: #a33a2e;
+
+  --background: var(--app);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --primary: var(--brand);
+  --primary-foreground: #ffffff;
+  --muted: var(--surface2);
+  --muted-foreground: var(--sub);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--brand);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --app: #0f1618;
+    --surface: #182225;
+    --surface2: #1e2a2d;
+    --ink: #e5ecea;
+    --sub: #9aaaae;
+    --line: #2b393c;
+    --brand: #4fb3ac;
+    --brand-weak: #1b3533;
+    --urgent: #f08a55;
+    --fore: #e0be5a;
+    --ok: #5cc48b;
+    --no: #f07b6c;
+    --primary-foreground: #0f1618;
+  }
+}
+
+@theme inline {
+  --color-app: var(--app);
+  --color-surface: var(--surface);
+  --color-surface2: var(--surface2);
+  --color-ink: var(--ink);
+  --color-sub: var(--sub);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-weak: var(--brand-weak);
+  --color-urgent: var(--urgent);
+  --color-fore: var(--fore);
+}
+
+body {
+  word-break: keep-all;
+  line-height: 1.6;
+}
