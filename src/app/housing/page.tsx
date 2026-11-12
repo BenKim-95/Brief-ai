@@ -236,6 +236,12 @@ async function Notices({ searchParams }: { searchParams: Promise<Search> }) {
 export default function HousingPage({ searchParams }: PageProps<"/housing">) {
   return (
     <main className="mx-auto w-full max-w-[560px] px-4 py-6">
+      <Link
+        href="/"
+        className="mb-3 inline-flex min-h-11 items-center rounded-md border px-3 text-sm"
+      >
+        ← 뉴스로 돌아가기
+      </Link>
       <h1 className="mb-1 text-xl font-bold">청약 정보</h1>
       <p className="mb-4 text-sm text-muted-foreground">
         청약홈에 올라온 분양 공고의 일정을 모아 보여드려요.
