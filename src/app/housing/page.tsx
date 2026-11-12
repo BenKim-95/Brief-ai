@@ -3,7 +3,10 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { getDb, hasDatabaseUrl } from "@/db";
+import { Pagination } from "@/components/pagination";
 import {
+  countHousingNotices,
+  NOTICES_PER_PAGE,
   listHousingCategories,
   listHousingNotices,
   listRegions,
@@ -23,6 +26,8 @@ function hrefWith(current: Search, patch: Record<string, string | undefined>) {
     const v = k in patch ? patch[k] : one(current[k]);
     if (v) p.set(k, v);
   }
+  // Changing a filter returns to page 1; only an explicit `page` patch keeps paging.
+  if (patch.page && patch.page !== "1") p.set("page", patch.page);
   const s = p.toString();
   return s ? `/housing?${s}` : "/housing";
 }
@@ -85,12 +90,20 @@ async function Notices({ searchParams }: { searchParams: Promise<Search> }) {
   const region = one(sp.region) || undefined;
   const includeClosed = one(sp.closed) === "1";
 
+  const filter = { category, region, includeClosed, today };
+  const rawPage = one(sp.page);
+  const requested = rawPage && /^\d+$/.test(rawPage) ? Math.max(1, Number(rawPage)) : 1;
+
   let data;
   try {
+    const total = await countHousingNotices(db, filter);
+    const totalPages = Math.max(1, Math.ceil(total / NOTICES_PER_PAGE));
+    const page = Math.min(requested, totalPages);
     data = await Promise.all([
       listHousingCategories(db),
       listRegions(db),
-      listHousingNotices(db, { category, region, includeClosed, today }),
+      listHousingNotices(db, filter, page),
+      Promise.resolve({ page, totalPages }),
     ]);
   } catch (e) {
     console.error("[housing] failed to load notices", e);
@@ -103,7 +116,7 @@ async function Notices({ searchParams }: { searchParams: Promise<Search> }) {
       </SetupNotice>
     );
   }
-  const [categories, regions, notices] = data;
+  const [categories, regions, notices, { page, totalPages }] = data;
   const categoryName = new Map(categories.map((c) => [c.id, c.name]));
 
   return (
@@ -229,6 +242,7 @@ async function Notices({ searchParams }: { searchParams: Promise<Search> }) {
           })}
         </ul>
       )}
+      <Pagination page={page} totalPages={totalPages} hrefFor={(n) => hrefWith(sp, { page: String(n) })} />
     </>
   );
 }

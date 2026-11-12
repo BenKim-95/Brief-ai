@@ -12,7 +12,7 @@ export type NoticeFilter = {
   today: string;
 };
 
-export const NOTICE_LIST_LIMIT = 200;
+export const NOTICES_PER_PAGE = 6;
 
 export async function listHousingCategories(db: Db) {
   return db
@@ -29,8 +29,7 @@ export async function listRegions(db: Db) {
   return rows.map((r) => r.region).filter((r): r is string => !!r);
 }
 
-/** Open/upcoming first by receipt start (soonest first), then closed (latest first). */
-export async function listHousingNotices(db: Db, f: NoticeFilter) {
+function noticeWhere(f: NoticeFilter) {
   const lastDay = sql`coalesce(${housingNotices.receiptEnd}, ${housingNotices.receiptStart})`;
   const conds: SQL[] = [];
   if (f.category === "none") conds.push(isNull(housingNotices.categoryId));
@@ -39,16 +38,31 @@ export async function listHousingNotices(db: Db, f: NoticeFilter) {
   if (!f.includeClosed) {
     conds.push(or(sql`${lastDay} is null`, gte(lastDay, f.today))!);
   }
+  return { lastDay, where: conds.length ? and(...conds) : undefined };
+}
+
+export async function countHousingNotices(db: Db, f: NoticeFilter) {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(housingNotices)
+    .where(noticeWhere(f).where);
+  return row?.n ?? 0;
+}
+
+/** Open/upcoming first by receipt start (soonest first), then closed (latest first). */
+export async function listHousingNotices(db: Db, f: NoticeFilter, page: number) {
+  const { lastDay, where } = noticeWhere(f);
   const closed = sql`case when ${lastDay} < ${f.today} then 1 else 0 end`;
   return db
     .select()
     .from(housingNotices)
-    .where(conds.length ? and(...conds) : undefined)
+    .where(where)
     .orderBy(
       asc(closed),
       sql`case when ${lastDay} >= ${f.today} or ${lastDay} is null then ${housingNotices.receiptStart} end asc nulls last`,
       desc(housingNotices.receiptStart),
       desc(housingNotices.id),
     )
-    .limit(NOTICE_LIST_LIMIT);
+    .limit(NOTICES_PER_PAGE)
+    .offset((page - 1) * NOTICES_PER_PAGE);
 }
