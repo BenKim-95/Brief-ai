@@ -16,10 +16,25 @@ export type ArticleCard = {
   fetchedAt: Date;
 };
 
+export const ARTICLES_PER_PAGE = 6;
+
+/** Total stored articles, plus how many are newer than `since` (for the headline). */
+export async function countArticles(db: Db, opts: { categoryId?: number; since: Date }) {
+  const [row] = await db
+    .select({
+      total: sql<number>`count(*)::int`,
+      fresh: sql<number>`(count(*) filter (where coalesce(${articles.publishedAt}, ${articles.fetchedAt}) >= ${opts.since.toISOString()}::timestamptz))::int`,
+    })
+    .from(articles)
+    .where(opts.categoryId ? eq(articles.categoryId, opts.categoryId) : undefined);
+  return { total: row?.total ?? 0, fresh: row?.fresh ?? 0 };
+}
+
 export async function listArticles(
   db: Db,
-  opts: { categoryId?: number; limit?: number } = {},
+  opts: { categoryId?: number; page?: number } = {},
 ): Promise<ArticleCard[]> {
+  const page = opts.page ?? 1;
   return db
     .select({
       id: articles.id,
@@ -37,7 +52,8 @@ export async function listArticles(
     .leftJoin(sources, eq(articles.sourceId, sources.id))
     .where(opts.categoryId ? eq(articles.categoryId, opts.categoryId) : undefined)
     .orderBy(desc(sql`coalesce(${articles.publishedAt}, ${articles.fetchedAt})`))
-    .limit(opts.limit ?? 30);
+    .limit(ARTICLES_PER_PAGE)
+    .offset((page - 1) * ARTICLES_PER_PAGE);
 }
 
 export async function listCategories(db: Db) {

@@ -253,7 +253,7 @@ export default function HousingPage({ searchParams }: PageProps<"/housing">) {
     <main className="mx-auto w-full max-w-[560px] px-4 py-6">
       <Link
         href="/"
-        className="mb-3 inline-flex min-h-11 items-center rounded-md border px-3 text-sm"
+        className="mb-3 inline-flex min-h-11 items-center rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700"
       >
         ← 뉴스로 돌아가기
       </Link>
