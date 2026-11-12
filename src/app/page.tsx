@@ -1,68 +1,176 @@
-import Image from "next/image";
+import Link from "next/link";
+import { connection } from "next/server";
+import { Suspense } from "react";
+import { getDb, hasDatabaseUrl } from "@/db";
+import { FetchNewsButton } from "./fetch-news-button";
+import { listArticles, listCategories, timeAgo } from "@/lib/news/queries";
 
-export default function Home() {
+type Search = { [key: string]: string | string[] | undefined };
+
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+function todayLabel() {
+  const kst = new Date(Date.now() + 9 * 3_600_000);
+  return `${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일 ${WEEKDAYS[kst.getUTCDay()]}요일`;
+}
+
+function Header() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <header className="flex items-center justify-between gap-3 pt-5">
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden
+          className="grid size-8 place-items-center rounded-lg bg-brand text-primary-foreground"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </span>
+        <div>
+          <p className="text-xl font-bold leading-tight">브리프</p>
+          <p className="text-xs text-sub">검증하고, 골라주고, 챙겨주는 정보 비서</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+      </div>
+      <Link
+        href="/admin/sources"
+        className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm text-sub"
+      >
+        설정
+      </Link>
+    </header>
+  );
+}
+
+function Notice({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div role="alert" className="rounded-2xl bg-surface p-5">
+      <p className="mb-1 font-bold">{title}</p>
+      <p className="text-sm text-sub">{children}</p>
+    </div>
+  );
+}
+
+function Chip({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={`inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm ${
+        active
+          ? "border-ink bg-ink text-app"
+          : "border-line bg-surface text-ink"
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}
+
+async function News({ searchParams }: { searchParams: Promise<Search> }) {
+  const sp = await searchParams;
+  if (!hasDatabaseUrl()) {
+    return (
+      <Notice title="아직 소식을 불러올 수 없어요">
+        <code>.env.local</code>에 <code>DATABASE_URL</code>을 넣어 주세요.
+      </Notice>
+    );
+  }
+  await connection();
+  const db = getDb();
+  const raw = Array.isArray(sp.category) ? sp.category[0] : sp.category;
+  const categoryId = raw && /^\d+$/.test(raw) ? Number(raw) : undefined;
+
+  const [items, cats] = await Promise.all([
+    listArticles(db, { categoryId }),
+    listCategories(db),
+  ]);
+  const now = new Date();
+  const dayAgo = now.getTime() - 24 * 3_600_000;
+  const fresh = items.filter(
+    (a) => (a.publishedAt ?? a.fetchedAt).getTime() >= dayAgo,
+  ).length;
+
+  return (
+    <>
+      <section className="pt-5">
+        <p className="text-sm text-sub">{todayLabel()}</p>
+        <h1 className="mt-1 text-[26px] font-bold leading-[1.35]">
+          {items.length === 0 ? (
+            <>아직 볼 소식이<br />없어요</>
+          ) : (
+            <>
+              오늘 새 소식 {fresh}개,
+              <br />
+              지금까지 {items.length}개
+            </>
+          )}
+        </h1>
+      </section>
+
+      <Link
+        href="/housing"
+        className="mt-5 flex min-h-14 items-center justify-between rounded-[20px] bg-brand px-5 text-base font-bold text-primary-foreground"
+      >
+        <span>청약 일정 보러 가기</span>
+        <span aria-hidden>›</span>
+      </Link>
+
+      <FetchNewsButton />
+
+      <nav aria-label="카테고리" className="-mx-5 mt-6 flex gap-2 overflow-x-auto px-5 pb-1">
+        <Chip href="/" active={categoryId === undefined}>전체</Chip>
+        {cats.map((c) => (
+          <Chip key={c.id} href={`/?category=${c.id}`} active={categoryId === c.id}>
+            {c.name}
+          </Chip>
+        ))}
+      </nav>
+
+      <h2 className="mt-6 mb-3 text-base font-bold">나와 관련된 소식</h2>
+      {items.length === 0 ? (
+        <Notice title="저장된 소식이 없어요">
+          관리 화면에서 &quot;뉴스 가져오기&quot;를 실행하면 여기에 카드가 생겨요.
+        </Notice>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {items.map((a) => {
+            const when = a.publishedAt ?? a.fetchedAt;
+            return (
+              <li key={a.id} className="rounded-[18px] bg-surface p-5">
+                <p className="text-xs text-sub">
+                  <span className="font-bold text-brand">{a.categoryName ?? "미분류"}</span>
+                  {a.sourceName ? ` · ${a.sourceName}` : ""} · {timeAgo(when)}
+                </p>
+                <h3 className="mt-2 text-[17px] font-bold leading-[1.45]">{a.titleKo}</h3>
+                <p className="mt-2 text-[15px] leading-[1.65] text-sub">{a.summaryKo}</p>
+                <a
+                  href={a.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 inline-flex min-h-11 items-center rounded-full border border-brand px-4 text-sm font-bold text-brand"
+                >
+                  원문 보기 ↗
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </>
+  );
+}
+
+export default function Home({ searchParams }: PageProps<"/">) {
+  return (
+    <div className="flex-1 bg-app">
+      <main className="mx-auto w-full max-w-[480px] px-5 pb-16">
+        <Header />
+        <Suspense fallback={<p className="pt-8 text-sm text-sub">불러오는 중이에요…</p>}>
+          <News searchParams={searchParams} />
+        </Suspense>
+        <p className="mt-8 text-xs text-sub">
+          요약은 기사 제목과 발췌문만 근거로 만들어요. 자세한 내용은 원문에서 확인해 주세요.
+        </p>
       </main>
     </div>
   );

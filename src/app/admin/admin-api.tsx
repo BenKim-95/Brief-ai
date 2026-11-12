@@ -30,16 +30,21 @@ export function AdminApiProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- sessionStorage is client-only
-      setTokenState(sessionStorage.getItem(STORAGE_KEY) ?? "");
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- storage is client-only
+      setTokenState(localStorage.getItem(STORAGE_KEY) ?? sessionStorage.getItem(STORAGE_KEY) ?? "");
     } catch {}
     setReady(true);
   }, []);
 
   const setToken = useCallback((t: string) => {
     setTokenState(t);
+    if (!t) {
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch {}
+    }
     try {
-      sessionStorage.setItem(STORAGE_KEY, t);
+      localStorage.setItem(STORAGE_KEY, t);
     } catch {}
   }, []);
 
@@ -57,10 +62,18 @@ export function AdminApiProvider({ children }: { children: ReactNode }) {
       });
       if (res.status === 204) return undefined as never;
       const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        // Wrong/stale token: forget it so the input field shows again.
+        setToken("");
+        try {
+          sessionStorage.removeItem(STORAGE_KEY);
+        } catch {}
+        throw new Error("토큰이 맞지 않아요. 다시 입력해 주세요.");
+      }
       if (!res.ok) throw new Error(data.error ?? `요청에 실패했어요 (${res.status})`);
       return data;
     },
-    [token],
+    [token, setToken],
   );
 
   const value = useMemo(() => ({ token, setToken, call }), [token, setToken, call]);
