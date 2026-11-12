@@ -3,7 +3,14 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { getDb, hasDatabaseUrl } from "@/db";
 import { FetchNewsButton } from "./fetch-news-button";
-import { listArticles, listCategories, timeAgo } from "@/lib/news/queries";
+import { Pagination } from "@/components/pagination";
+import {
+  ARTICLES_PER_PAGE,
+  countArticles,
+  listArticles,
+  listCategories,
+  timeAgo,
+} from "@/lib/news/queries";
 
 type Search = { [key: string]: string | string[] | undefined };
 
@@ -80,28 +87,37 @@ async function News({ searchParams }: { searchParams: Promise<Search> }) {
   const raw = Array.isArray(sp.category) ? sp.category[0] : sp.category;
   const categoryId = raw && /^\d+$/.test(raw) ? Number(raw) : undefined;
 
+  const dayAgo = new Date(new Date().getTime() - 24 * 3_600_000);
+  const rawPage = Array.isArray(sp.page) ? sp.page[0] : sp.page;
+  const requested = rawPage && /^\d+$/.test(rawPage) ? Math.max(1, Number(rawPage)) : 1;
+
+  const { total, fresh } = await countArticles(db, { categoryId, since: dayAgo });
+  const totalPages = Math.max(1, Math.ceil(total / ARTICLES_PER_PAGE));
+  const page = Math.min(requested, totalPages);
   const [items, cats] = await Promise.all([
-    listArticles(db, { categoryId }),
+    listArticles(db, { categoryId, page }),
     listCategories(db),
   ]);
-  const now = new Date();
-  const dayAgo = now.getTime() - 24 * 3_600_000;
-  const fresh = items.filter(
-    (a) => (a.publishedAt ?? a.fetchedAt).getTime() >= dayAgo,
-  ).length;
+  const pageHref = (n: number) => {
+    const p = new URLSearchParams();
+    if (categoryId) p.set("category", String(categoryId));
+    if (n > 1) p.set("page", String(n));
+    const s = p.toString();
+    return s ? `/?${s}` : "/";
+  };
 
   return (
     <>
       <section className="pt-5">
         <p className="text-sm text-sub">{todayLabel()}</p>
         <h1 className="mt-1 text-[26px] font-bold leading-[1.35]">
-          {items.length === 0 ? (
+          {total === 0 ? (
             <>아직 볼 소식이<br />없어요</>
           ) : (
             <>
               오늘 새 소식 {fresh}개,
               <br />
-              지금까지 {items.length}개
+              지금까지 {total}개
             </>
           )}
         </h1>
@@ -127,7 +143,7 @@ async function News({ searchParams }: { searchParams: Promise<Search> }) {
       </nav>
 
       <h2 className="mt-6 mb-3 text-base font-bold">나와 관련된 소식</h2>
-      {items.length === 0 ? (
+      {total === 0 ? (
         <Notice title="저장된 소식이 없어요">
           관리 화면에서 &quot;뉴스 가져오기&quot;를 실행하면 여기에 카드가 생겨요.
         </Notice>
@@ -156,6 +172,7 @@ async function News({ searchParams }: { searchParams: Promise<Search> }) {
           })}
         </ul>
       )}
+      <Pagination page={page} totalPages={totalPages} hrefFor={pageHref} />
     </>
   );
 }
