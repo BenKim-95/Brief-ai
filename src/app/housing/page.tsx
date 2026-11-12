@@ -7,6 +7,7 @@ import { Pagination } from "@/components/pagination";
 import {
   countHousingNotices,
   NOTICES_PER_PAGE,
+  type NoticeFilter,
   listHousingCategories,
   listHousingNotices,
   listRegions,
@@ -85,12 +86,12 @@ async function Notices({ searchParams }: { searchParams: Promise<Search> }) {
   await connection();
   const today = todayKst();
   const rawCategory = one(sp.category);
-  const category =
+  const category: NoticeFilter["category"] =
     rawCategory === "none" ? "none" : rawCategory && /^\d+$/.test(rawCategory) ? Number(rawCategory) : undefined;
   const region = one(sp.region) || undefined;
   const includeClosed = one(sp.closed) === "1";
 
-  const filter = { category, region, includeClosed, today };
+  const filter: NoticeFilter = { category, region, includeClosed, today };
   const rawPage = one(sp.page);
   const requested = rawPage && /^\d+$/.test(rawPage) ? Math.max(1, Number(rawPage)) : 1;
 
