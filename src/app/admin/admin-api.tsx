@@ -10,7 +10,8 @@ import {
   type ReactNode,
 } from "react";
 
-const STORAGE_KEY = "admin-token";
+export const ADMIN_TOKEN_KEY = "admin-token";
+const STORAGE_KEY = ADMIN_TOKEN_KEY;
 
 type Api = {
   token: string;

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Roadmap steps 1–3 and 9 are done (setup; source/category CRUD with admin UI; news fetch + card UI; 청약 notices). All PRD tables exist and migrations 0000–0003 are applied to Neon; step 3 was live-checked (real RSS + Claude), step 9 still needs a live data.go.kr check. `src/app/page.tsx` is the news feed (fetch button, category tabs, cards, pagination). No Playwright E2E specs exist yet; unit tests are Vitest only. `PRD.md` (Korean) is the source of truth for features, data model (section 5), roadmap (section 8) and open questions (section 11). Implement only when the user says so, one roadmap step at a time.
+Roadmap steps 1–4 and 9 are done (setup; source/category CRUD with admin UI; news fetch + card UI; 저장 and /saved; 청약 notices). All PRD tables exist and migrations 0000–0003 are applied to Neon; step 3 was live-checked (real RSS + Claude), step 9 still needs a live data.go.kr check. `src/app/page.tsx` is the news feed (fetch button, category tabs, cards, pagination). No Playwright E2E specs exist yet; unit tests are Vitest only. `PRD.md` (Korean) is the source of truth for features, data model (section 5), roadmap (section 8) and open questions (section 11). Implement only when the user says so, one roadmap step at a time.
 
 ## Commands
 
@@ -46,4 +46,11 @@ Roadmap steps 1–3 and 9 are done (setup; source/category CRUD with admin UI; n
 - `POST /api/news/fetch` (admin) → `syncNews` in `src/lib/news/sync.ts`: parse active `sources` in parallel (one failure doesn't stop others), skip stored URLs, cap 40 new per run (newest first), batches of 5 to Claude (10 overflowed max_tokens and got truncated) (`src/lib/news/enrich.ts`, model `NEWS_MODEL` = claude-haiku-5-5, RSS snippet only, Zod-validated). A failed batch is not saved, so it is retried next run. Needs `ANTHROPIC_API_KEY` (503 if unset). Live-checked: 40 saved, 0 failed batches.
 - Dedupe (`src/lib/news/dedupe.ts`, tested): URLs are normalised before the stored-URL check, and near-identical titles are dropped so the same story is not sent to Claude twice.
 - Home `/` (`src/app/page.tsx`, server, Suspense for searchParams/DB): `fetch-news-button.tsx` calls the fetch API, category tabs use `?category=<id>`, cards show the category (미분류 when null), `ARTICLES_PER_PAGE` = 6 with `src/components/pagination.tsx` (first/prev/numbers/…/next/last; page logic in `src/lib/page-items.ts`). Queries live in `src/lib/news/queries.ts`.
-- Still to do for PRD section 9: Playwright E2E (fetch → card → category filter).
+- Still to do for PRD section 9: Playwright E2E (fetch → card → category filter → save).
+- Seed sources 1–3 (샘플 …) point to dead URLs and report 404 on every fetch; deactivate or delete them in the admin UI.
+
+## Implemented (step 4, 저장/스크랩)
+
+- `PUT` / `DELETE /api/saved/[id]` (admin token, `id` = article id; idempotent; 404 for unknown article) write `saved_articles` with `user_id` null. Queries in `src/lib/news/saved.ts` (`savedIdSet`, `listSaved`, limit 100).
+- `src/components/article-card.tsx` is the shared card (home and `/saved`); `save-button.tsx` is a client toggle using `useOptimistic`, reads the same `admin-token` as the admin pages (`ADMIN_TOKEN_KEY` exported from `admin-api.tsx`) and calls `router.refresh()` after success. `/saved` is a server page (Suspense + `connection()`), linked from the home header (저장함).
+- Live-checked against Neon: save adds one row, repeat save is a no-op, unsave removes it, no token → 401. Not done: optional memo (`note` column exists, no UI), Playwright E2E, pagination on `/saved`.
