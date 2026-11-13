@@ -1,4 +1,5 @@
 import { timeAgo, type ArticleCard } from "@/lib/news/queries";
+import { CardImage } from "./card-image";
 import { SaveButton } from "./save-button";
 
 /** 홈과 저장 페이지가 함께 쓰는 뉴스 카드. */
@@ -6,6 +7,7 @@ export function ArticleCardItem({ article: a, saved }: { article: ArticleCard; s
   const when = a.publishedAt ?? a.fetchedAt;
   return (
     <li className="rounded-[18px] bg-surface p-5">
+      {a.imageUrl && <CardImage src={a.imageUrl} />}
       <p className="text-xs text-sub">
         <span className="font-bold text-brand">{a.categoryName ?? "미분류"}</span>
         {a.sourceName ? ` · ${a.sourceName}` : ""} · {timeAgo(when)}

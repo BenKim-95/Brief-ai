@@ -21,6 +21,20 @@ test.describe("뉴스 카드", () => {
     await expect(page.getByRole("heading", { level: 3 })).toHaveCount(NEWS_TOTAL - 6);
   });
 
+  test("사진이 있는 카드만 사진을 보여주고, 열리지 않는 사진은 숨긴다", async ({ page }) => {
+    await page.goto("/");
+    // 소식 1: 정상 사진
+    const withImage = card(page, `${E2E_PREFIX} 모델 소식 1`).locator("img");
+    await expect(withImage).toBeVisible();
+    await expect.poll(() => withImage.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
+    // 소식 2: 주소가 깨져 있으면 사진 영역째 사라진다
+    await expect(card(page, `${E2E_PREFIX} 모델 소식 2`).locator("img")).toHaveCount(0);
+    // 소식 3: 사진 주소 자체가 없다
+    await expect(card(page, `${E2E_PREFIX} 모델 소식 3`).locator("img")).toHaveCount(0);
+    // 사진이 없거나 깨져도 제목·요약·저장 버튼은 그대로 있다
+    await expect(card(page, `${E2E_PREFIX} 모델 소식 2`).getByRole("button", { name: "☆ 저장" })).toBeVisible();
+  });
+
   test("카테고리 탭으로 해당 카테고리만 보인다", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("navigation", { name: "카테고리" }).getByRole("link", { name: `${E2E_PREFIX} 정책` }).click();

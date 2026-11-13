@@ -9,6 +9,7 @@ export type ArticleCard = {
   url: string;
   titleKo: string;
   summaryKo: string;
+  imageUrl: string | null;
   categoryId: number | null;
   categoryName: string | null;
   sourceName: string | null;
@@ -41,6 +42,7 @@ export async function listArticles(
       url: articles.url,
       titleKo: articles.titleKo,
       summaryKo: articles.summaryKo,
+      imageUrl: articles.imageUrl,
       categoryId: articles.categoryId,
       categoryName: categories.name,
       sourceName: sources.name,

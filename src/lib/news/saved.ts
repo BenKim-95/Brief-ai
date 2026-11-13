@@ -26,6 +26,7 @@ export async function listSaved(db: Db): Promise<ArticleCard[]> {
       url: articles.url,
       titleKo: articles.titleKo,
       summaryKo: articles.summaryKo,
+      imageUrl: articles.imageUrl,
       categoryId: articles.categoryId,
       categoryName: categories.name,
       sourceName: sources.name,

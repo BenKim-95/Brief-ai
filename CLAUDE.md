@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Roadmap steps 1–4 and 9 are done (setup; source/category CRUD with admin UI; news fetch + card UI; 저장 and /saved; 청약 notices). All PRD tables exist and migrations 0000–0004 are applied to Neon; step 3 was live-checked (real RSS + Claude), step 9 still needs a live data.go.kr check. `src/app/page.tsx` is the news feed (fetch button, category tabs, cards, pagination). Unit tests are Vitest (`src/**/*.test.ts`), E2E is Playwright (`e2e/`, see "E2E" below). `PRD.md` (Korean) is the source of truth for features, data model (section 5), roadmap (section 8) and open questions (section 11). Implement only when the user says so, one roadmap step at a time.
+Roadmap steps 1–4 and 9 are done (setup; source/category CRUD with admin UI; news fetch + card UI; 저장 and /saved; 청약 notices). All PRD tables exist and migrations 0000–0005 are applied to Neon; step 3 was live-checked (real RSS + Claude), step 9 still needs a live data.go.kr check. `src/app/page.tsx` is the news feed (fetch button, category tabs, cards, pagination). Unit tests are Vitest (`src/**/*.test.ts`), E2E is Playwright (`e2e/`, see "E2E" below). `PRD.md` (Korean) is the source of truth for features, data model (section 5), roadmap (section 8) and open questions (section 11). Implement only when the user says so, one roadmap step at a time.
 
 ## Commands
 
@@ -49,6 +49,8 @@ Roadmap steps 1–4 and 9 are done (setup; source/category CRUD with admin UI; n
 - Home `/` (`src/app/page.tsx`, server, Suspense for searchParams/DB): `fetch-news-button.tsx` calls the fetch API, category tabs use `?category=<id>`, cards show the category (미분류 when null), `ARTICLES_PER_PAGE` = 6 with `src/components/pagination.tsx` (first/prev/numbers/…/next/last; page logic in `src/lib/page-items.ts`). Queries live in `src/lib/news/queries.ts`.
 - E2E covers card list, pagination, category filter and save; the fetch button flow (real Claude) is not in E2E.
 - Seed sources 1–3 (샘플 …) point to dead URLs and report 404 on every fetch; deactivate or delete them in the admin UI.
+- Card photo (`articles.image_url`, migration `0005`): only the URL is stored (https only), never the file; the browser loads it straight from the publisher (`referrerPolicy="no-referrer"`). `src/lib/news/image.ts`: `pickImageUrl` reads the RSS item (media:content → media:thumbnail → enclosure → first `<img>`), and for new articles still without one `fetchOgImage` reads the head of the article page for `og:image` (4 s timeout, 200 KB cap, blocks private/localhost hosts, max 3 redirects, 5 in parallel). Logo/default-looking file names are rejected. `syncNews` also fills the image of already-stored articles that the current RSS shows with one (no Claude call, max 200 per run). Older articles that are no longer in any feed keep no photo. `src/components/card-image.tsx` hides the photo area if the image fails to load.
+- Copyright note: PRD section 4 says summary plus link only. Hotlinking the publisher's own RSS/og thumbnail is a product decision beyond that; revisit if it becomes a concern.
 
 ## Implemented (step 4, 저장/스크랩)
 

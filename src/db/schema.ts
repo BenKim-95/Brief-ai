@@ -43,6 +43,8 @@ export const articles = pgTable(
     titleOrig: text("title_orig").notNull(),
     titleKo: text("title_ko").notNull(),
     summaryKo: text("summary_ko").notNull(),
+    /** 카드에 보여줄 대표 이미지 주소 (https만, 파일은 저장하지 않음). null = 사진 없음. */
+    imageUrl: text("image_url"),
     /** null = 미분류 (also what a deleted category falls back to). */
     categoryId: integer("category_id").references(() => categories.id, {
       onDelete: "set null",

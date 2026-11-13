@@ -9,6 +9,12 @@ export const NEWS_MODEL_COUNT = 4;
 export const NEWS_POLICY_COUNT = 3;
 export const HOUSING_TOTAL = 2;
 
+/** 네트워크 없이 로드되는 1x1 PNG. 소식 1에 붙여 "사진이 보이는" 경우를 만든다. */
+export const E2E_IMAGE_OK =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+/** 열리지 않는 주소. 소식 2에 붙여 "깨진 사진은 숨는다"를 확인한다. */
+export const E2E_IMAGE_BROKEN = "https://example.invalid/broken.jpg";
+
 function hostOf(url: string) {
   return new URL(url).hostname.replace("-pooler", "");
 }
@@ -77,6 +83,7 @@ export default async function globalSetup() {
       titleOrig: `E2E original ${i}`,
       titleKo: `${E2E_PREFIX} ${label} 소식 ${n}`,
       summaryKo: `${label} 관련 테스트 요약 ${n}이에요.`,
+      imageUrl: i === 0 ? E2E_IMAGE_OK : i === 1 ? E2E_IMAGE_BROKEN : null,
       categoryId: isModel ? model.id : policy.id,
       // 번호가 작을수록 최신 → 1페이지에 모델 소식 1~4, 정책 소식 1~2가 온다.
       publishedAt: new Date(now - i * 3_600_000),

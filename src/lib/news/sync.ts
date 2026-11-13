@@ -5,6 +5,7 @@ import type { getDb } from "@/db";
 import { articles, categories, sources } from "@/db/schema";
 import { hasSimilarTitle, normalizeUrl } from "./dedupe";
 import { enrichBatch, type RawArticle } from "./enrich";
+import { fetchOgImage, pickImageUrl } from "./image";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -18,7 +19,20 @@ const SNIPPET_MAX = 400;
 const DEDUPE_DAYS = 7;
 const DEDUPE_MAX_ROWS = 3000;
 
-const parser = new Parser({ timeout: 10000 });
+/** RSS에 이미지가 없는 기사의 og:image 조회를 동시에 몇 개까지 할지. */
+const IMAGE_LOOKUP_CONCURRENCY = 5;
+/** 이미 저장된 기사에 이미지를 채워 넣는 건 한 번에 이만큼만. */
+const IMAGE_BACKFILL_MAX = 200;
+
+const parser = new Parser({
+  timeout: 10000,
+  customFields: {
+    item: [
+      ["media:content", "mediaContent", { keepArray: true }],
+      ["media:thumbnail", "mediaThumbnail", { keepArray: true }],
+    ],
+  },
+});
 
 type Candidate = {
   sourceId: number;
@@ -27,6 +41,7 @@ type Candidate = {
   title: string;
   snippet: string;
   publishedAt: Date | null;
+  imageUrl: string | null;
 };
 
 export type NewsSyncResult = {
@@ -80,6 +95,7 @@ export async function syncNews(db: Db, client: Anthropic): Promise<NewsSyncResul
             title,
             snippet: clean(it.contentSnippet ?? it.content).slice(0, SNIPPET_MAX),
             publishedAt: d && !Number.isNaN(d.getTime()) ? d : null,
+            imageUrl: pickImageUrl(it),
           });
         }
         result.sources.push({ id: s.id, name: s.name, ok: true, items });
@@ -101,12 +117,25 @@ export async function syncNews(db: Db, client: Anthropic): Promise<NewsSyncResul
   //    - 이미 저장됐거나 이번 수집에서 먼저 나온 기사와 제목이 비슷한 것
   const urls = [...candidates.values()].map((c) => c.url);
   const existingExact = new Set<string>();
+  const missingImage = new Set<string>(); // 저장은 됐지만 이미지가 비어 있는 기사
   for (let i = 0; i < urls.length; i += 500) {
     const rows = await db
-      .select({ url: articles.url })
+      .select({ url: articles.url, imageUrl: articles.imageUrl })
       .from(articles)
       .where(inArray(articles.url, urls.slice(i, i + 500)));
-    rows.forEach((r) => existingExact.add(r.url));
+    for (const r of rows) {
+      existingExact.add(r.url);
+      if (!r.imageUrl) missingImage.add(r.url);
+    }
+  }
+  // 이번 RSS가 이미지를 주면 이미 저장된 기사에도 채워 넣는다 (Claude 호출 없음).
+  let backfilled = 0;
+  for (const c of candidates.values()) {
+    if (backfilled >= IMAGE_BACKFILL_MAX) break;
+    if (c.imageUrl && missingImage.has(c.url)) {
+      await db.update(articles).set({ imageUrl: c.imageUrl }).where(eq(articles.url, c.url));
+      backfilled++;
+    }
   }
   const since = new Date(Date.now() - DEDUPE_DAYS * 24 * 60 * 60 * 1000);
   const recent = await db
@@ -136,6 +165,16 @@ export async function syncNews(db: Db, client: Anthropic): Promise<NewsSyncResul
   const todo = fresh.slice(0, MAX_NEW_PER_RUN);
   result.skippedByCap = fresh.length - todo.length;
   if (todo.length === 0) return result;
+
+  // RSS에 이미지가 없는 기사는 기사 페이지의 og:image를 찾아본다 (실패해도 사진 없이 저장).
+  const needImage = todo.filter((c) => !c.imageUrl);
+  for (let i = 0; i < needImage.length; i += IMAGE_LOOKUP_CONCURRENCY) {
+    await Promise.all(
+      needImage.slice(i, i + IMAGE_LOOKUP_CONCURRENCY).map(async (c) => {
+        c.imageUrl = await fetchOgImage(c.url);
+      }),
+    );
+  }
 
   // 3. Claude in batches -> Zod-validated -> save
   const cats = await db.select().from(categories).orderBy(asc(categories.sortOrder));
@@ -169,6 +208,7 @@ export async function syncNews(db: Db, client: Anthropic): Promise<NewsSyncResul
           titleOrig: c.title,
           titleKo: e.titleKo,
           summaryKo: e.summaryKo,
+          imageUrl: c.imageUrl,
           categoryId: e.categoryId,
           publishedAt: c.publishedAt,
         };
