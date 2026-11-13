@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Roadmap steps 1–2 and 9 are done (setup; source/category CRUD with admin UI; 청약 notices). All PRD tables exist and migrations 0000–0003 are applied to Neon; step 9 still needs a live API check. `src/app/page.tsx` is still the create-next-app sample. `PRD.md` (Korean) is the source of truth for features, data model (section 5), roadmap (section 8) and open questions (section 11). Implement only when the user says so, one roadmap step at a time.
+Roadmap steps 1–3 and 9 are done (setup; source/category CRUD with admin UI; news fetch + card UI; 청약 notices). All PRD tables exist and migrations 0000–0003 are applied to Neon; steps 3 and 9 still need a live check (real Claude / data.go.kr call). `src/app/page.tsx` is the news feed (fetch button, category tabs, cards, pagination). No Playwright E2E specs exist yet; unit tests are Vitest only. `PRD.md` (Korean) is the source of truth for features, data model (section 5), roadmap (section 8) and open questions (section 11). Implement only when the user says so, one roadmap step at a time.
 
 ## Commands
 
@@ -41,6 +41,9 @@ Roadmap steps 1–2 and 9 are done (setup; source/category CRUD with admin UI; �
 - `src/lib/housing/`: `applyhome.ts` (api.odcloud.kr client + tolerant field mapper, raw row kept), `classify.ts` (pure keyword rule), `sync.ts` (fetch → upsert → `reclassifyHousingNotices`), `queries.ts`, `status.ts`. Any category/feed mutation calls `reclassifyHousingNotices`.
 - Field names in `mapNotice` were written from the public API docs and not yet checked against a live response.
 - Routes: `/api/housing/{feeds,categories,fetch}` (admin) and `/api/housing/notices/[id]/ics` (public). Pages: `/housing` (server, Suspense for searchParams/DB because `cacheComponents` is on), `/admin/housing-{feeds,categories}`.
-## Implemented (step 3, 뉴스 가져오기 API)
+## Implemented (step 3, 뉴스 가져오기 + 카드 UI)
 
-- `POST /api/news/fetch` (admin) → `syncNews` in `src/lib/news/sync.ts`: parse active `sources` in parallel (one failure doesn't stop others), skip stored URLs, cap 40 new per run (newest first), batches of 10 to Claude (`src/lib/news/enrich.ts`, model `NEWS_MODEL` = claude-haiku-5-5, RSS snippet only, Zod-validated). A failed batch is not saved, so it is retried next run. Needs `ANTHROPIC_API_KEY` (503 if unset). Not yet checked against a live run; card UI and fetch button are still to do.
+- `POST /api/news/fetch` (admin) → `syncNews` in `src/lib/news/sync.ts`: parse active `sources` in parallel (one failure doesn't stop others), skip stored URLs, cap 40 new per run (newest first), batches of 10 to Claude (`src/lib/news/enrich.ts`, model `NEWS_MODEL` = claude-haiku-5-5, RSS snippet only, Zod-validated). A failed batch is not saved, so it is retried next run. Needs `ANTHROPIC_API_KEY` (503 if unset). Not yet checked against a live run.
+- Dedupe (`src/lib/news/dedupe.ts`, tested): URLs are normalised before the stored-URL check, and near-identical titles are dropped so the same story is not sent to Claude twice.
+- Home `/` (`src/app/page.tsx`, server, Suspense for searchParams/DB): `fetch-news-button.tsx` calls the fetch API, category tabs use `?category=<id>`, cards show the category (미분류 when null), `ARTICLES_PER_PAGE` = 6 with `src/components/pagination.tsx` (first/prev/numbers/…/next/last; page logic in `src/lib/page-items.ts`). Queries live in `src/lib/news/queries.ts`.
+- Still to do for PRD section 9: Playwright E2E (fetch → card → category filter).
