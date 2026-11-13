@@ -8,7 +8,8 @@ import { enrichBatch, type RawArticle } from "./enrich";
 
 type Db = ReturnType<typeof getDb>;
 
-const BATCH_SIZE = 10;
+/** 한국어 제목+요약 5개면 출력 한도 안에 안정적으로 들어온다 (10개는 응답이 잘렸음). */
+const BATCH_SIZE = 5;
 /** Per-run cap so one request fits the function time limit; the rest is picked up next run. */
 const MAX_NEW_PER_RUN = 40;
 const PER_SOURCE_LIMIT = 30;

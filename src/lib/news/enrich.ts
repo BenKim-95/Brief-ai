@@ -59,7 +59,7 @@ export async function enrichBatch(
 
   const msg = await client.messages.create({
     model: NEWS_MODEL,
-    max_tokens: 4096,
+    max_tokens: 8192,
     system: [
       { type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } },
     ],
@@ -74,7 +74,17 @@ export async function enrichBatch(
     .map((b) => (b.type === "text" ? b.text : ""))
     .join("");
 
-  const parsed = resultSchema.parse(extractJson(text));
+  let json: unknown;
+  try {
+    json = extractJson(text);
+  } catch (e) {
+    // 원인 파악용: 종료 사유와 응답 앞부분을 함께 남긴다 (기사 본문이 아닌 모델 응답만)
+    const head = text.replace(/\s+/g, " ").slice(0, 80);
+    throw new Error(
+      `${e instanceof Error ? e.message : "응답을 읽지 못했어요."} (종료 사유: ${msg.stop_reason ?? "?"}, 응답: "${head}")`,
+    );
+  }
+  const parsed = resultSchema.parse(json);
   const valid = new Set(categories.map((c) => c.id));
   const keys = new Set(articles.map((a) => a.key));
   return parsed
