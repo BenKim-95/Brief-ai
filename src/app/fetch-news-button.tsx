@@ -10,6 +10,7 @@ type FetchResult = {
   newFound: number;
   inserted: number;
   skippedByCap: number;
+  skippedDuplicates: number;
   failedBatches: string[];
 };
 
@@ -33,10 +34,17 @@ function Inner() {
       if (r.sources.length === 0) {
         setMessage("켜져 있는 뉴스 소스가 없어요. 설정에서 등록해 주세요.");
       } else if (r.inserted === 0 && r.newFound === 0) {
-        setMessage("새 소식이 없어요.");
+        setMessage(
+          r.skippedDuplicates > 0
+            ? `새 소식이 없어요. (같은 내용 ${r.skippedDuplicates}개는 건너뛰었어요.)`
+            : "새 소식이 없어요.",
+        );
       } else {
         setMessage(
           `새 소식 ${r.inserted}개를 담았어요.` +
+            (r.skippedDuplicates > 0
+              ? ` 같은 내용 ${r.skippedDuplicates}개는 건너뛰었어요.`
+              : "") +
             (r.skippedByCap > 0
               ? ` ${r.skippedByCap}개는 한 번 더 누르면 가져와요.`
               : ""),
