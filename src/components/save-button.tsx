@@ -8,7 +8,17 @@ import { ADMIN_TOKEN_KEY } from "@/app/admin/admin-api";
  * 저장/해제 토글. 관리 API와 같은 토큰을 쓴다(로그인 도입 전까지).
  * 눌렀을 때 바로 바뀌어 보이고(optimistic), 실패하면 원래대로 돌아가며 이유를 보여준다.
  */
-export function SaveButton({ articleId, initialSaved }: { articleId: number; initialSaved: boolean }) {
+export function SaveButton({
+  articleId,
+  initialSaved,
+  apiBase = "/api/saved",
+}: {
+  /** 저장할 항목의 id (기사 id 또는 청약 공고 id) */
+  articleId: number;
+  initialSaved: boolean;
+  /** 저장 API 경로. 청약 공고는 "/api/housing/saved" */
+  apiBase?: string;
+}) {
   const router = useRouter();
   const [saved, setSaved] = useOptimistic(initialSaved);
   const [pending, startTransition] = useTransition();
@@ -25,7 +35,7 @@ export function SaveButton({ articleId, initialSaved }: { articleId: number; ini
           token = localStorage.getItem(ADMIN_TOKEN_KEY) ?? sessionStorage.getItem(ADMIN_TOKEN_KEY) ?? "";
         } catch {}
         if (!token) throw new Error("홈의 토큰 입력칸에 관리 토큰을 먼저 넣어 주세요.");
-        const res = await fetch(`/api/saved/${articleId}`, {
+        const res = await fetch(`${apiBase}/${articleId}`, {
           method: next ? "PUT" : "DELETE",
           headers: { "x-admin-token": token },
         });

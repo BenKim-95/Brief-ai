@@ -75,6 +75,23 @@ export const savedArticles = pgTable(
   (t) => [unique("saved_articles_article_user_uq").on(t.articleId, t.userId).nullsNotDistinct()],
 );
 
+/** Same shape as `saved_articles`, for 청약 공고. */
+export const savedHousingNotices = pgTable(
+  "saved_housing_notices",
+  {
+    id: serial("id").primaryKey(),
+    noticeId: integer("notice_id")
+      .notNull()
+      .references(() => housingNotices.id, { onDelete: "cascade" }),
+    userId: text("user_id"),
+    note: text("note"),
+    savedAt: timestamp("saved_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [unique("saved_housing_notices_notice_user_uq").on(t.noticeId, t.userId).nullsNotDistinct()],
+);
+
 export const pushSubscriptions = pgTable("push_subscriptions", {
   id: serial("id").primaryKey(),
   endpoint: text("endpoint").notNull().unique(),

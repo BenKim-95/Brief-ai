@@ -12,7 +12,9 @@ import {
   listHousingNotices,
   listRegions,
 } from "@/lib/housing/queries";
-import { noticeStatus, STATUS_LABEL, todayKst, type NoticeStatus } from "@/lib/housing/status";
+import { savedNoticeIdSet } from "@/lib/housing/saved";
+import { todayKst } from "@/lib/housing/status";
+import { HousingNoticeCard } from "@/components/housing-notice-card";
 import { FetchButton } from "./fetch-button";
 
 export const metadata: Metadata = { title: "청약 정보" };
@@ -33,13 +35,6 @@ function hrefWith(current: Search, patch: Record<string, string | undefined>) {
   return s ? `/housing?${s}` : "/housing";
 }
 
-const STATUS_STYLE: Record<NoticeStatus, string> = {
-  open: "bg-primary text-primary-foreground",
-  upcoming: "border",
-  closed: "bg-muted text-muted-foreground",
-  unknown: "border border-dashed",
-};
-
 function Chip({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
   return (
     <Link
@@ -52,12 +47,6 @@ function Chip({ href, active, children }: { href: string; active: boolean; child
       {children}
     </Link>
   );
-}
-
-function formatDate(d: string | null) {
-  if (!d) return null;
-  const [, m, day] = d.split("-");
-  return `${Number(m)}월 ${Number(day)}일`;
 }
 
 function SetupNotice({ children }: { children: React.ReactNode }) {
@@ -118,6 +107,10 @@ async function Notices({ searchParams }: { searchParams: Promise<Search> }) {
     );
   }
   const [categories, regions, notices, { page, totalPages }] = data;
+  const savedIds = await savedNoticeIdSet(
+    db,
+    notices.map((n) => n.id),
+  );
   const categoryName = new Map(categories.map((c) => [c.id, c.name]));
 
   return (
@@ -161,86 +154,15 @@ async function Notices({ searchParams }: { searchParams: Promise<Search> }) {
         </p>
       ) : (
         <ul className="grid gap-3">
-          {notices.map((n) => {
-            const status = noticeStatus(n.receiptStart, n.receiptEnd, today);
-            const receipt =
-              n.receiptStart && n.receiptEnd && n.receiptStart !== n.receiptEnd
-                ? `${formatDate(n.receiptStart)} ~ ${formatDate(n.receiptEnd)}`
-                : formatDate(n.receiptStart ?? n.receiptEnd);
-            return (
-              <li key={n.id}>
-                <article className="rounded-lg border bg-card p-4 text-card-foreground">
-                  <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
-                    <span className={`rounded-full px-2 py-1 font-medium ${STATUS_STYLE[status]}`}>
-                      {STATUS_LABEL[status]}
-                    </span>
-                    <span className="rounded-full border px-2 py-1">
-                      {n.categoryId ? categoryName.get(n.categoryId) : "미분류"}
-                    </span>
-                    {n.region && <span className="text-muted-foreground">{n.region}</span>}
-                  </div>
-                  <h2 className="text-base font-semibold leading-snug">{n.name}</h2>
-                  {n.address && <p className="mt-1 text-sm text-muted-foreground">{n.address}</p>}
-                  <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-                    {n.typeLabel && (
-                      <>
-                        <dt className="text-muted-foreground">유형</dt>
-                        <dd>{n.typeLabel}</dd>
-                      </>
-                    )}
-                    {n.supplyCount !== null && (
-                      <>
-                        <dt className="text-muted-foreground">공급</dt>
-                        <dd>{n.supplyCount.toLocaleString("ko-KR")}세대</dd>
-                      </>
-                    )}
-                    {n.announcedOn && (
-                      <>
-                        <dt className="text-muted-foreground">모집공고</dt>
-                        <dd>{formatDate(n.announcedOn)}</dd>
-                      </>
-                    )}
-                    {receipt && (
-                      <>
-                        <dt className="text-muted-foreground">청약 접수</dt>
-                        <dd>{receipt}</dd>
-                      </>
-                    )}
-                    {n.winnerOn && (
-                      <>
-                        <dt className="text-muted-foreground">당첨자 발표</dt>
-                        <dd>{formatDate(n.winnerOn)}</dd>
-                      </>
-                    )}
-                  </dl>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {n.detailUrl && (
-                      <a
-                        href={n.detailUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex min-h-11 items-center rounded-md border px-3 text-sm"
-                      >
-                        청약홈 공고 보기 ↗
-                      </a>
-                    )}
-                    {(n.receiptStart || n.receiptEnd || n.winnerOn) && (
-                      <a
-                        href={`/api/housing/notices/${n.id}/ics`}
-                        download
-                        className="inline-flex min-h-11 items-center rounded-md border px-3 text-sm"
-                      >
-                        캘린더에 추가
-                      </a>
-                    )}
-                  </div>
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    정확한 자격·일정은 청약홈 공고문을 확인해 주세요.
-                  </p>
-                </article>
-              </li>
-            );
-          })}
+          {notices.map((n) => (
+            <HousingNoticeCard
+              key={n.id}
+              notice={n}
+              categoryName={(n.categoryId ? categoryName.get(n.categoryId) : undefined) ?? "미분류"}
+              today={today}
+              saved={savedIds.has(n.id)}
+            />
+          ))}
         </ul>
       )}
       <Pagination page={page} totalPages={totalPages} hrefFor={(n) => hrefWith(sp, { page: String(n) })} />
@@ -251,12 +173,20 @@ async function Notices({ searchParams }: { searchParams: Promise<Search> }) {
 export default function HousingPage({ searchParams }: PageProps<"/housing">) {
   return (
     <main className="mx-auto w-full max-w-[560px] px-4 py-6">
-      <Link
-        href="/"
-        className="mb-3 inline-flex min-h-11 items-center rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700"
-      >
-        ← 뉴스로 돌아가기
-      </Link>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <Link
+          href="/"
+          className="inline-flex min-h-11 items-center rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          ← 뉴스로 돌아가기
+        </Link>
+        <Link
+          href="/housing/saved"
+          className="inline-flex min-h-11 items-center rounded-md border px-3 text-sm"
+        >
+          저장함
+        </Link>
+      </div>
       <h1 className="mb-1 text-xl font-bold">청약 정보</h1>
       <p className="mb-4 text-sm text-muted-foreground">
         청약홈에 올라온 분양 공고의 일정을 모아 보여드려요.
