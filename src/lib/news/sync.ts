@@ -1,8 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { asc, eq, inArray } from "drizzle-orm";
+import { asc, desc, eq, gte, inArray } from "drizzle-orm";
 import Parser from "rss-parser";
 import type { getDb } from "@/db";
 import { articles, categories, sources } from "@/db/schema";
+import { hasSimilarTitle, normalizeUrl } from "./dedupe";
 import { enrichBatch, type RawArticle } from "./enrich";
 
 type Db = ReturnType<typeof getDb>;
@@ -12,6 +13,9 @@ const BATCH_SIZE = 10;
 const MAX_NEW_PER_RUN = 40;
 const PER_SOURCE_LIMIT = 30;
 const SNIPPET_MAX = 400;
+/** 제목 유사도 비교 대상: 최근 며칠간 저장된 기사 */
+const DEDUPE_DAYS = 7;
+const DEDUPE_MAX_ROWS = 3000;
 
 const parser = new Parser({ timeout: 10000 });
 
@@ -29,6 +33,8 @@ export type NewsSyncResult = {
   newFound: number;
   inserted: number;
   skippedByCap: number;
+  /** URL·제목이 이미 저장된 기사와 같거나 비슷해 건너뛴 수 */
+  skippedDuplicates: number;
   failedBatches: string[];
 };
 
@@ -47,6 +53,7 @@ export async function syncNews(db: Db, client: Anthropic): Promise<NewsSyncResul
     newFound: 0,
     inserted: 0,
     skippedByCap: 0,
+    skippedDuplicates: 0,
     failedBatches: [],
   };
 
@@ -62,9 +69,10 @@ export async function syncNews(db: Db, client: Anthropic): Promise<NewsSyncResul
           const title = clean(it.title);
           if (!url || !title || !/^https?:\/\//i.test(url)) continue;
           items++;
-          if (candidates.has(url)) continue;
+          const key = normalizeUrl(url);
+          if (candidates.has(key)) continue;
           const d = it.isoDate ? new Date(it.isoDate) : null;
-          candidates.set(url, {
+          candidates.set(key, {
             sourceId: s.id,
             sourceName: s.name,
             url,
@@ -87,19 +95,42 @@ export async function syncNews(db: Db, client: Anthropic): Promise<NewsSyncResul
   );
   result.sources.sort((a, b) => a.id - b.id);
 
-  // 2. Dedupe against stored URLs (never re-call Claude for stored articles)
-  const urls = [...candidates.keys()];
-  const existing = new Set<string>();
+  // 2. Dedupe (never re-call Claude for stored articles)
+  //    - 같은 URL (추적 파라미터 등을 뺀 주소 기준)
+  //    - 이미 저장됐거나 이번 수집에서 먼저 나온 기사와 제목이 비슷한 것
+  const urls = [...candidates.values()].map((c) => c.url);
+  const existingExact = new Set<string>();
   for (let i = 0; i < urls.length; i += 500) {
     const rows = await db
       .select({ url: articles.url })
       .from(articles)
       .where(inArray(articles.url, urls.slice(i, i + 500)));
-    rows.forEach((r) => existing.add(r.url));
+    rows.forEach((r) => existingExact.add(r.url));
   }
-  const fresh = [...candidates.values()]
-    .filter((c) => !existing.has(c.url))
-    .sort((a, b) => (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0));
+  const since = new Date(Date.now() - DEDUPE_DAYS * 24 * 60 * 60 * 1000);
+  const recent = await db
+    .select({ url: articles.url, titleOrig: articles.titleOrig, titleKo: articles.titleKo })
+    .from(articles)
+    .where(gte(articles.fetchedAt, since))
+    .orderBy(desc(articles.fetchedAt))
+    .limit(DEDUPE_MAX_ROWS);
+  const storedKeys = new Set(recent.map((r) => normalizeUrl(r.url)));
+  const storedTitles = recent.flatMap((r) => [r.titleOrig, r.titleKo]);
+
+  const sorted = [...candidates.entries()].sort(
+    ([, a], [, b]) => (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0),
+  );
+  const fresh: Candidate[] = [];
+  const freshTitles: string[] = [];
+  for (const [key, c] of sorted) {
+    if (existingExact.has(c.url) || storedKeys.has(key)) continue; // 같은 주소
+    if (hasSimilarTitle(c.title, storedTitles) || hasSimilarTitle(c.title, freshTitles)) {
+      result.skippedDuplicates++;
+      continue;
+    }
+    fresh.push(c);
+    freshTitles.push(c.title);
+  }
   result.newFound = fresh.length;
   const todo = fresh.slice(0, MAX_NEW_PER_RUN);
   result.skippedByCap = fresh.length - todo.length;
@@ -107,6 +138,8 @@ export async function syncNews(db: Db, client: Anthropic): Promise<NewsSyncResul
 
   // 3. Claude in batches -> Zod-validated -> save
   const cats = await db.select().from(categories).orderBy(asc(categories.sortOrder));
+  // 번역된 한국어 제목끼리도 비교 (영어 기사와 한국어 기사가 같은 내용일 때)
+  const acceptedKo = [...storedTitles];
   for (let i = 0; i < todo.length; i += BATCH_SIZE) {
     const chunk = todo.slice(i, i + BATCH_SIZE);
     const raw: RawArticle[] = chunk.map((c, key) => ({
@@ -118,7 +151,16 @@ export async function syncNews(db: Db, client: Anthropic): Promise<NewsSyncResul
     try {
       const enriched = await enrichBatch(client, raw, cats);
       if (enriched.length === 0) continue;
-      const rows = enriched.map((e) => {
+      const kept = enriched.filter((e) => {
+        if (hasSimilarTitle(e.titleKo, acceptedKo)) {
+          result.skippedDuplicates++;
+          return false;
+        }
+        acceptedKo.push(e.titleKo);
+        return true;
+      });
+      if (kept.length === 0) continue;
+      const rows = kept.map((e) => {
         const c = chunk[e.key];
         return {
           sourceId: c.sourceId,
