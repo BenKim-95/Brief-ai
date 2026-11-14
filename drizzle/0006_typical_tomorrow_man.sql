@@ -1,0 +1,1 @@
+ALTER TABLE "housing_notices" ADD COLUMN "image_url" text;

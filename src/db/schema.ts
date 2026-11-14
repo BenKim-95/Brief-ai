@@ -161,6 +161,8 @@ export const housingNotices = pgTable("housing_notices", {
   receiptEnd: date("receipt_end", { mode: "string" }),
   winnerOn: date("winner_on", { mode: "string" }),
   detailUrl: text("detail_url"),
+  /** 네이버 이미지 검색 썸네일 주소(https). 파일은 저장하지 않는다. */
+  imageUrl: text("image_url"),
   raw: jsonb("raw").notNull(),
   fetchedAt: timestamp("fetched_at", { withTimezone: true })
     .notNull()

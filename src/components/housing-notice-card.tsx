@@ -1,5 +1,6 @@
 import type { housingNotices } from "@/db/schema";
 import { noticeStatus, STATUS_LABEL, type NoticeStatus } from "@/lib/housing/status";
+import { CardImage } from "./card-image";
 import { SaveButton } from "./save-button";
 
 export type HousingNotice = typeof housingNotices.$inferSelect;
@@ -37,6 +38,7 @@ export function HousingNoticeCard({
   return (
     <li>
       <article className="rounded-lg border bg-card p-4 text-card-foreground">
+        {n.imageUrl && <CardImage src={n.imageUrl} inset={4} />}
         <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
           <span className={`rounded-full px-2 py-1 font-medium ${STATUS_STYLE[status]}`}>
             {STATUS_LABEL[status]}

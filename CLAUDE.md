@@ -64,3 +64,9 @@ Roadmap steps 1–4 and 9 are done (setup; source/category CRUD with admin UI; n
 - It uses its own Neon branch `e2e-test` (project `brief`), never the production database. The URL lives in the git-ignored `.env.e2e` (`E2E_DATABASE_URL`, `E2E_ADMIN_TOKEN`); the config passes it to the server as `DATABASE_URL`, so `.env.local` is overridden. Create `.env.e2e` in each new worktree (copy it from the main folder).
 - `e2e/global-setup.ts` **wipes and reseeds** news/housing tables on that branch before every run (7 articles in 2 categories, 2 housing notices, all prefixed `[E2E]`) and refuses to run if the URL points at the same host as `DATABASE_URL` in `.env.local`. New migrations must be applied to the `e2e-test` branch too (set `DATABASE_URL` to the E2E URL for `npm run db:migrate`), or reset the branch from its parent.
 - Claude and data.go.kr are not called (keys are blanked), so fetch buttons are not covered; seed data stands in for fetched rows.
+
+## Implemented (청약 카드 사진, 네이버 API HUB)
+
+- `housing_notices.image_url` (migration `0006`). `NO_IMAGE` (`""`) = searched, nothing suitable (not shown, not searched again); null = not searched yet.
+- Env: `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `NAVER_OPEN_API_URL` are **Naver Cloud API HUB** keys (headers `X-NCP-APIGW-API-KEY-ID` / `X-NCP-APIGW-API-KEY`, path `/search/v1/image`), not developers.naver.com keys. Read via `src/lib/naver.ts`.
+- `src/lib/housing/image.ts`: after each housing sync, `fillHousingImages` searches up to 40 unsearched notices (open/upcoming first). A result is used only if the title contains the complex name, is not ad-like (`UNWANTED`), is landscape (ratio 1.2–2, width ≥ 500) and either says 조감도/전경 etc. or comes from `TRUSTED_HOSTS` (press/review photos). Thumbnails are upgraded `b150` → `b360` (larger sizes 404). Only the URL is stored. Card uses the shared `CardImage`.

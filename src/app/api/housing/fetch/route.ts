@@ -12,11 +12,12 @@ export async function POST(request: Request) {
   const key = getDataGoKrServiceKey();
   if ("error" in key) return key.error;
 
-  const { since, results } = await syncHousing(getDb(), key.key);
+  const { since, results, images } = await syncHousing(getDb(), key.key);
   return Response.json({
     since,
     inserted: results.reduce((s, r) => s + r.inserted, 0),
     updated: results.reduce((s, r) => s + r.updated, 0),
+    images,
     results,
   });
 }

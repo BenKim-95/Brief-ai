@@ -3,6 +3,7 @@ import type { getDb } from "@/db";
 import { housingCategories, housingFeeds, housingNotices } from "@/db/schema";
 import { fetchApplyhomeFeed, type NoticeInput } from "./applyhome";
 import { classifyNotice } from "./classify";
+import { fillHousingImages } from "./image";
 import { todayKst } from "./status";
 
 type Db = ReturnType<typeof getDb>;
@@ -133,6 +134,11 @@ export async function syncHousing(db: Db, serviceKey: string) {
     }
   }
   await reclassifyHousingNotices(db);
-  return { since, results };
+  const images = await fillHousingImages(db).catch((e) => ({
+    checked: 0,
+    filled: 0,
+    error: e instanceof Error ? e.message : String(e),
+  }));
+  return { since, results, images };
 }
 
