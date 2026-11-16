@@ -14,6 +14,12 @@ Roadmap steps 1–4 and 9 are done (setup; source/category CRUD with admin UI; n
 - `npm run test:e2e` (Playwright; run `npx playwright install` once first)
 - `npm run db:generate` / `npm run db:migrate` (`drizzle.config.ts` loads `.env.local` itself via `process.loadEnvFile`; shell env wins). Migrations live in `drizzle/`.
 
+## Branches
+
+- `main` is the only long-lived branch; canonical remote is `brief-ai` (`origin` is an old copy, do not push there).
+- New work: `step<roadmap number>/<feature>` (e.g. `step5/pwa-push`), one feature per branch/worktree under `.claude/worktrees/` (git-ignored).
+- When a feature is done: merge into `main`, then delete the branch and its worktree. When a roadmap step is done, tag `v0.<step>` and update the Status section above.
+
 ## Stack and gotchas
 
 - Next.js 16 (App Router, `src/` dir, alias `@/*`), React 19, Tailwind 4, TypeScript. `AGENTS.md` warns this Next.js version has breaking changes: read the relevant guide in `node_modules/next/dist/docs/` before writing Next.js code.
