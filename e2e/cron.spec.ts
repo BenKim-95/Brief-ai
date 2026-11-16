@@ -19,3 +19,10 @@ test.describe("Cron 엔드포인트", () => {
     });
   }
 });
+
+test("/api/cron/digest: 인증 없으면 401, 맞으면 푸시 키가 없어 503", async ({ request }) => {
+  expect((await request.get("/api/cron/digest")).status()).toBe(401);
+  const res = await request.get("/api/cron/digest", { headers: { authorization: `Bearer ${CRON_SECRET}` } });
+  expect(res.status()).toBe(503);
+  expect((await res.json()).error).toContain("푸시 키");
+});

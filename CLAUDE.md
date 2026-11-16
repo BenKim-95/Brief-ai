@@ -85,6 +85,13 @@ Roadmap steps 1–4 and 9 are done (setup; source/category CRUD with admin UI; n
 - Not live-checked: no deploy yet. Vercel plan limits on cron frequency and `maxDuration` (60 s here) must be checked against the actual plan; daily is the least a plan allows. A news run is capped at 40 new articles, so a once-a-day run keeps up only if fewer than 40 new items appear per day; raise the frequency if the plan allows. Run times are approximate on some plans.
 - E2E (`e2e/cron.spec.ts`): 401 without/with wrong secret (admin token does not work), 503 with the right secret because external keys are blank in E2E.
 
+## Implemented (step 5, 하루 1회 요약 알림)
+
+- `GET /api/cron/digest` (`0 22 * * *` UTC = 07:00 KST, after the 06:00/06:30 collection crons; `CRON_SECRET` auth, 503 without VAPID keys) → `sendDigest` in `src/lib/push/digest.ts`. One push per day at most (PRD 17장), only when there are new items: counts articles and housing notices whose `fetched_at` is after the last digest, body is counts + latest headline (facts only, no recommendation wording).
+- The rule lives in `notification_settings` (channel `push`, `user_id` null; created on first send). `rule` = `{kind:"daily_digest", categoryIds: number[]|null, includeHousing, lastDigestAt}`, parsed by `parseRule` (broken/empty → defaults). `enabled=false` turns it off. `lastDigestAt` only moves forward when at least one device got it, so a total failure is retried next run; the look-back is capped at 48 h.
+- No UI or API edits the rule yet (change the row directly); PRD open questions 4/10 (which categories, 청약 알림 기준) stay open. Email (5c, Resend) is not started.
+- Verified against the `e2e-test` branch with a stubbed sender (`e2e/digest.spec.ts`); a real push to a real device is still unchecked.
+
 ## E2E (Playwright)
 
 - `npm run test:e2e` builds the app and runs it with `next start` on port 3200 (`playwright.config.ts`), then runs `e2e/*.spec.ts` at a 380px mobile viewport, one worker. First time: `npx playwright install chromium`.

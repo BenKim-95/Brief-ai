@@ -53,6 +53,7 @@ export default async function globalSetup() {
 
   // 테스트 브랜치를 항상 같은 상태로 되돌린다 (저장 → 공고/기사 → 분류 순서로 지움).
   await db.delete(s.pushSubscriptions);
+  await db.delete(s.notificationSettings);
   await db.delete(s.savedHousingNotices);
   await db.delete(s.savedArticles);
   await db.delete(s.articles);
