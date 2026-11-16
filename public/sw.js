@@ -50,3 +50,43 @@ self.addEventListener("fetch", (event) => {
     );
   }
 });
+
+// --- 웹 푸시 ---
+// 서버(src/lib/push/payload.ts)가 보내는 { title, body, url } 을 알림으로 보여준다.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = {};
+  }
+  const title = typeof data.title === "string" && data.title ? data.title : "브리프";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: typeof data.body === "string" ? data.body : "",
+      icon: "/pwa-icon/192",
+      badge: "/pwa-icon/192",
+      data: { url: typeof data.url === "string" ? data.url : "/" },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  // 사이트 안 경로만 연다(바깥 주소가 들어와도 무시).
+  let target = new URL("/", self.location.origin);
+  try {
+    const u = new URL(event.notification.data?.url ?? "/", self.location.origin);
+    if (u.origin === self.location.origin) target = u;
+  } catch {}
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if (new URL(c.url).origin === target.origin && "focus" in c) {
+          return c.navigate(target.href).then((w) => (w ?? c).focus());
+        }
+      }
+      return self.clients.openWindow(target.href);
+    }),
+  );
+});
