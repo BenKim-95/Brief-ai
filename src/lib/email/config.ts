@@ -24,7 +24,7 @@ export function getEmailConfig(): { config: EmailConfig } | { error: Response } 
       error: Response.json(
         {
           error:
-            "서버에 이메일 설정이 없어요. RESEND_API_KEY, RESEND_FROM, SITE_URL(https://… 형식, 경로 없이)을 확인해 주세요.",
+            "서버에 이메일 설정이 없어요. RESEND_API_KEY, RESEND_FROM, SITE_URL(https://… 형식, 경로 없이. 로컬 시험은 http://localhost:3000)을 확인해 주세요. 값이 비어 있어도 안 돼요.",
         },
         { status: 503 },
       ),
