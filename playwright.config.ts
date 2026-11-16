@@ -40,6 +40,8 @@ export default defineConfig({
       // 외부 호출(Claude, 공공데이터)은 E2E에서 쓰지 않는다.
       ANTHROPIC_API_KEY: "",
       DATA_GO_KR_SERVICE_KEY: "",
+      // Cron 호출 확인용 비밀값(테스트 전용). 실제 비밀값과 무관하다.
+      CRON_SECRET: process.env.E2E_CRON_SECRET ?? "e2e-cron-secret",
       // 푸시 키도 비운다 → 실제 푸시 서비스로 보내지 않고, 시험 알림 API는 503을 돌려준다.
       NEXT_PUBLIC_VAPID_PUBLIC_KEY: "",
       VAPID_PRIVATE_KEY: "",

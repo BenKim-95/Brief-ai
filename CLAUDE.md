@@ -78,6 +78,13 @@ Roadmap steps 1–4 and 9 are done (setup; source/category CRUD with admin UI; n
 - `POST|DELETE /api/push/subscription` and `POST /api/push/test` (all admin token). `public/sw.js` has the `push` and `notificationclick` handlers (opens only same-origin paths). UI: `/notifications` (home header "알림") with `src/components/push-toggle.tsx` (permission → subscribe → save; rolls back the browser subscription if the server save fails).
 - Not yet: who gets which notification and when (rule in `notification_settings`, daily cap of 2). E2E blanks the VAPID env so tests never reach a real push service (`e2e/push.spec.ts`).
 
+## Implemented (step 5d, Vercel Cron 자동 수집)
+
+- `vercel.json` schedules `GET /api/cron/news` (`0 21 * * *` UTC = 06:00 KST) and `GET /api/cron/housing` (`30 21 * * *` = 06:30 KST). The routes reuse `syncNews` / `syncHousing`, the same code as the buttons.
+- Auth is `src/lib/cron-auth.ts`: `Authorization: Bearer <CRON_SECRET>` (Vercel sends it when the `CRON_SECRET` env var exists). Separate from `ADMIN_TOKEN`; 503 if unset, so the endpoints stay closed until the secret is set in Vercel project env. Set `CRON_SECRET` there (a long random value) before the first deploy.
+- Not live-checked: no deploy yet. Vercel plan limits on cron frequency and `maxDuration` (60 s here) must be checked against the actual plan; daily is the least a plan allows. A news run is capped at 40 new articles, so a once-a-day run keeps up only if fewer than 40 new items appear per day; raise the frequency if the plan allows. Run times are approximate on some plans.
+- E2E (`e2e/cron.spec.ts`): 401 without/with wrong secret (admin token does not work), 503 with the right secret because external keys are blank in E2E.
+
 ## E2E (Playwright)
 
 - `npm run test:e2e` builds the app and runs it with `next start` on port 3200 (`playwright.config.ts`), then runs `e2e/*.spec.ts` at a 380px mobile viewport, one worker. First time: `npx playwright install chromium`.
