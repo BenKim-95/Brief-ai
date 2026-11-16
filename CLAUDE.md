@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Roadmap steps 1–4 and 9 are done (setup; source/category CRUD with admin UI; news fetch + card UI; 저장 and /saved; 청약 notices). All PRD tables exist and migrations 0000–0005 are applied to Neon; step 3 was live-checked (real RSS + Claude), step 9 still needs a live data.go.kr check. `src/app/page.tsx` is the news feed (fetch button, category tabs, cards, pagination). Unit tests are Vitest (`src/**/*.test.ts`), E2E is Playwright (`e2e/`, see "E2E" below). `PRD.md` (Korean) is the source of truth for features, data model (section 5), roadmap (section 8) and open questions (section 11). Implement only when the user says so, one roadmap step at a time.
+Roadmap steps 1–5 and 9 are done in code (setup; source/category CRUD with admin UI; news fetch + card UI; 저장 and /saved; PWA, web push, Resend email, Vercel Cron; 청약 notices), tagged `v0.5`. Migrations 0000–0006 are applied to Neon; **0007 (`email_subscribers`) is not yet applied to production**. Step 3 was live-checked (real RSS + Claude). Still unchecked live: step 9 (data.go.kr), and everything in step 5 (real push to a phone, real Resend mail, Vercel Cron after deploy). Remaining roadmap: 6 (.ics for news), 7 (Capacitor + widget), 8 (Clerk). `src/app/page.tsx` is the news feed (fetch button, category tabs, cards, pagination). Unit tests are Vitest (`src/**/*.test.ts`), E2E is Playwright (`e2e/`, see "E2E" below). `PRD.md` (Korean) is the source of truth for features, data model (section 5), roadmap (section 8) and open questions (section 11). Implement only when the user says so, one roadmap step at a time.
 
 ## Commands
 
