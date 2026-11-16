@@ -105,6 +105,18 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
     .defaultNow(),
 });
 
+/** 이메일 알림을 받을 주소(Resend). 로그인 도입 전이라 user_id는 비워 둔다. */
+export const emailSubscribers = pgTable("email_subscribers", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  /** 수신 해제 링크에 쓰는 무작위 값. 메일을 받은 사람만 알 수 있다. */
+  unsubscribeToken: text("unsubscribe_token").notNull().unique(),
+  userId: text("user_id"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 export const notificationSettings = pgTable("notification_settings", {
   id: serial("id").primaryKey(),
   userId: text("user_id"),
