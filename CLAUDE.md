@@ -64,6 +64,13 @@ Roadmap steps 1–4 and 9 are done (setup; source/category CRUD with admin UI; n
 - `src/components/article-card.tsx` is the shared card (home and `/saved`); `save-button.tsx` is a client toggle using `useOptimistic`, reads the same `admin-token` as the admin pages (`ADMIN_TOKEN_KEY` exported from `admin-api.tsx`) and calls `router.refresh()` after success. `/saved` is a server page (Suspense + `connection()`), linked from the home header (저장함).
 - Live-checked against Neon: save adds one row, repeat save is a no-op, unsave removes it, no token → 401. Not done: optional memo (`note` column exists, no UI), pagination on `/saved`.
 
+## Implemented (step 5a, PWA 설치 + 오프라인 안내)
+
+- Branch `step5/pwa-push-cron`. Step 5 is split: **5a PWA (done)**, 5b web push + subscriptions, 5c Resend email, 5d Vercel Cron (news + 청약 auto fetch). Alert rules (PRD section 11 item 4, 17장 하루 최대 2개) are still undecided; keep them configurable via `notification_settings`.
+- No Serwist: a hand-written `public/sw.js` (also the place for the future `push` handler) caches only `/offline` and `/_next/static/*`; HTML pages and `/api/*` are never cached, so lists are never stale. Bump `VERSION` in `sw.js` if the cached set changes. `next.config.ts` serves `/sw.js` with `no-cache`.
+- `src/app/manifest.ts`; icons are drawn in code (`src/lib/pwa-icon.tsx`, routes `/pwa-icon/{180,192,512}`, `?maskable=1`, plus `apple-icon.tsx`), letter "B" only (no font file). Replace with real artwork when a logo exists.
+- `src/components/pwa-client.tsx` (in the root layout) registers the SW in production only and shows a dismissible iOS "홈 화면에 추가" hint. E2E: `e2e/pwa.spec.ts`. Real install and offline behaviour must be checked by hand on a device (HTTPS).
+
 ## E2E (Playwright)
 
 - `npm run test:e2e` builds the app and runs it with `next start` on port 3200 (`playwright.config.ts`), then runs `e2e/*.spec.ts` at a 380px mobile viewport, one worker. First time: `npx playwright install chromium`.
