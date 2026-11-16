@@ -46,6 +46,10 @@ export default defineConfig({
       NEXT_PUBLIC_VAPID_PUBLIC_KEY: "",
       VAPID_PRIVATE_KEY: "",
       VAPID_SUBJECT: "",
+      // 이메일 설정도 비운다 → 실제 메일은 보내지 않고, 시험 메일 API는 503을 돌려준다.
+      RESEND_API_KEY: "",
+      RESEND_FROM: "",
+      SITE_URL: "",
     },
   },
 });

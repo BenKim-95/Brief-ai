@@ -92,6 +92,16 @@ Roadmap steps 1–4 and 9 are done (setup; source/category CRUD with admin UI; n
 - No UI or API edits the rule yet (change the row directly); PRD open questions 4/10 (which categories, 청약 알림 기준) stay open. Email (5c, Resend) is not started.
 - Verified against the `e2e-test` branch with a stubbed sender (`e2e/digest.spec.ts`); a real push to a real device is still unchecked.
 
+## Implemented (step 5c, Resend 이메일)
+
+- Env (all three needed, else 503 / channel skipped): `RESEND_API_KEY`, `RESEND_FROM` (sender, domain verified in Resend), `SITE_URL` (`https://…`, no path; used for links in mails). Read via `src/lib/email/config.ts`; the key is never printed. Production needs them in Vercel env too.
+- Table `email_subscribers` (migration `0007`, email UNIQUE lowercase, random `unsubscribe_token`, nullable `user_id`). **Applied to the `e2e-test` branch only; NOT yet applied to the production Neon DB** (run `npm run db:migrate` there before deploying).
+- `src/lib/email/`: `resend.ts` (`sendBatch` → `POST api.resend.com/emails/batch`, 100 per call, one mail per recipient with its own `List-Unsubscribe`; errors carry only the status code), `template.ts` (`buildDigestEmail`: counts + up to 5 latest headlines linking to the original, HTML-escaped, http(s) links only), `subscribers.ts` (add/list/remove, max 20 addresses).
+- Routes: `GET|POST|DELETE /api/email/subscription` and `POST /api/email/test` (admin token; the list never returns tokens), `POST /api/email/unsubscribe` (public, token-based, same reply for unknown tokens). Page `/email/unsubscribe?token=` needs a button press (mail scanners that prefetch the link must not unsubscribe anyone). UI: `src/components/email-subscribe.tsx` on `/notifications`.
+- Digest (`src/lib/push/digest.ts`) is now multi-channel: `sendDigest(db, {push?, email?})`. Push and email each have their own `notification_settings` row (`channel` "push" / "email") and their own `lastDigestAt`, so one failing does not block or duplicate the other. `/api/cron/digest` sends on whichever channels are configured (503 only if neither).
+- Not live-checked: no real mail sent (needs the user's Resend key + verified domain; Resend's test sender `onboarding@resend.dev` only delivers to the account owner's own address). Unit tests mock `fetch`; E2E blanks the Resend env.
+- Migration journal gotcha: the production and `e2e-test` DBs had an older, different `0006` applied (from the unmerged `worktree-housing-image` branch: `image_url` + an unused `image_checked_at` column, journal time `1794576645896`). `main`'s `0006` journal `when` was changed to that same value so drizzle does not re-run it (it would fail with "column already exists"). Leave the extra column in place.
+
 ## E2E (Playwright)
 
 - `npm run test:e2e` builds the app and runs it with `next start` on port 3200 (`playwright.config.ts`), then runs `e2e/*.spec.ts` at a 380px mobile viewport, one worker. First time: `npx playwright install chromium`.

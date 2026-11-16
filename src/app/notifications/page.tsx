@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EmailSubscribe } from "@/components/email-subscribe";
 import { PushToggle } from "@/components/push-toggle";
 
 export const metadata = { title: "알림 설정 · 브리프" };
@@ -16,7 +17,10 @@ export default function NotificationsPage() {
           </Link>
         </header>
         <h1 className="mt-5 mb-4 text-[26px] font-bold leading-[1.35]">알림 설정</h1>
-        <PushToggle />
+        <div className="flex flex-col gap-4">
+          <PushToggle />
+          <EmailSubscribe />
+        </div>
         <p className="mt-6 text-xs text-sub">
           알림은 확인할 가치가 있는 소식만 하루에 많아야 두 번 보내요. 언제든 끌 수 있어요.
         </p>
