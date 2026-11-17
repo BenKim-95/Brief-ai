@@ -102,6 +102,14 @@ Roadmap steps 1–5 and 9 are done in code (setup; source/category CRUD with adm
 - Not live-checked: no real mail sent (needs the user's Resend key + verified domain; Resend's test sender `onboarding@resend.dev` only delivers to the account owner's own address). Unit tests mock `fetch`; E2E blanks the Resend env.
 - Migration journal gotcha: the production and `e2e-test` DBs had an older, different `0006` applied (from the unmerged `worktree-housing-image` branch: `image_url` + an unused `image_checked_at` column, journal time `1794576645896`). `main`'s `0006` journal `when` was changed to that same value so drizzle does not re-run it (it would fail with "column already exists"). Leave the extra column in place.
 
+## Implemented (step 6, 뉴스 .ics 읽을 시간 알림)
+
+- Branch `step6/news-ics`. `GET /api/articles/[id]/ics?when=evening|tomorrow|weekend` or `?date=YYYY-MM-DD` (public like the housing `.ics`; `Cache-Control: no-store`). Returns one timed event `[읽을 기사] <제목>` with the Korean summary + original link only (no article body), a 15-minute length and a `VALARM` at the start. 400 with a Korean reason for a bad/missing/past/over-1-year time, 404 for an unknown article.
+- Times are Korea time (UTC+9, no DST), computed in `src/lib/news/reminder.ts` (pure, tested): evening = today 20:00 (tomorrow if past), tomorrow = 08:00, weekend = next Saturday 09:00 (a Saturday rolls to the next one), `date` = that day 09:00 (today allowed, max 365 days ahead).
+- `src/lib/ics.ts` now supports all-day (`date`) and timed (`startAt`, UTC) events; only timed ones get an alarm. `PRODID` is `-//brief//KO`.
+- UI: `src/components/reminder-menu.tsx` ("읽을 시간 알림" button on every news card, home and `/saved`): fetches the file and downloads it, shows the server's reason inline on errors. Housing keeps its own `.ics` link.
+- E2E: `e2e/reminder.spec.ts`. Not checked by hand: importing the file into Google/Apple/Outlook calendar apps and the alarm firing.
+
 ## E2E (Playwright)
 
 - `npm run test:e2e` builds the app and runs it with `next start` on port 3200 (`playwright.config.ts`), then runs `e2e/*.spec.ts` at a 380px mobile viewport, one worker. First time: `npx playwright install chromium`.
