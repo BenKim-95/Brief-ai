@@ -4,8 +4,9 @@ import Parser from "rss-parser";
 import type { getDb } from "@/db";
 import { articles, categories, sources } from "@/db/schema";
 import { hasSimilarTitle, normalizeUrl } from "./dedupe";
-import { enrichBatch, type RawArticle } from "./enrich";
+import { classifyTitles, enrichBatch, type RawArticle } from "./enrich";
 import { fetchOgImage, pickImageUrl } from "./image";
+import { computeHotness, selectHotTopics, type Pooled, type Selectable } from "./select";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -47,6 +48,8 @@ export type NewsSyncResult = {
   newFound: number;
   inserted: number;
   skippedByCap: number;
+  /** 새 기사가 한 번에 처리할 수보다 많아서 카테고리별 핫 토픽 순으로 골랐는지 */
+  selectedByHotTopics: boolean;
   /** URL·제목이 이미 저장된 기사와 같거나 비슷해 건너뛴 수 */
   skippedDuplicates: number;
   failedBatches: string[];
@@ -55,7 +58,11 @@ export type NewsSyncResult = {
 const clean = (s: string | undefined) =>
   (s ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
-export async function syncNews(db: Db, client: Anthropic): Promise<NewsSyncResult> {
+export async function syncNews(
+  db: Db,
+  client: Anthropic,
+  opts: { /** 한 번에 처리할 새 기사 수(기본 40). 테스트에서만 바꾼다. */ maxNew?: number } = {},
+): Promise<NewsSyncResult> {
   const activeSources = await db
     .select()
     .from(sources)
@@ -67,6 +74,7 @@ export async function syncNews(db: Db, client: Anthropic): Promise<NewsSyncResul
     newFound: 0,
     inserted: 0,
     skippedByCap: 0,
+    selectedByHotTopics: false,
     skippedDuplicates: 0,
     failedBatches: [],
   };
@@ -148,7 +156,42 @@ export async function syncNews(db: Db, client: Anthropic): Promise<NewsSyncResul
     freshTitles.push(c.title);
   }
   result.newFound = fresh.length;
-  const todo = fresh.slice(0, MAX_NEW_PER_RUN);
+  const cats = await db.select().from(categories).orderBy(asc(categories.sortOrder));
+
+  // 한 번에 처리할 수보다 새 기사가 많으면 "카테고리별 핫 토픽 순"으로 고른다(나머지는 건너뛰고, 다음에 피드에 남아 있으면 가져온다).
+  //  - 핫함: 같은 이야기를 다룬 기사(제목이 비슷한 기사)가 많고 매체가 여럿일수록
+  //  - 카테고리: 제목만 Claude 에 보여 줘서 나누고, 카테고리마다 돌아가며 채운다
+  const cap = opts.maxNew ?? MAX_NEW_PER_RUN;
+  let todo = fresh;
+  if (fresh.length > cap) {
+    const pooled = new Map<Candidate, Pooled>(
+      [...candidates.values()].map((c) => [c, { title: c.title, sourceId: c.sourceId }]),
+    );
+    const pool = [...pooled.values()];
+    const classified = await classifyTitles(
+      client,
+      fresh.map((c, key) => ({ key, title: c.title, sourceName: c.sourceName })),
+      cats.map((c) => ({ id: c.id, name: c.name, description: c.description })),
+    );
+    if (classified.failedBatches > 0) {
+      result.failedBatches.push(
+        `제목 분류 ${classified.failedBatches}개 묶음이 실패해서, 그 기사들은 미분류로 보고 골랐어요.`,
+      );
+    }
+    const items: Selectable[] = fresh.map((c, i) => {
+      const h = computeHotness(pooled.get(c)!, pool);
+      return {
+        id: i,
+        categoryId: classified.byKey.get(i) ?? null,
+        sources: h.sources,
+        mentions: h.mentions,
+        time: c.publishedAt?.getTime() ?? 0,
+      };
+    });
+    const picked = new Set(selectHotTopics(items, cap, cats.map((c) => c.id)));
+    todo = fresh.filter((_, i) => picked.has(i)); // 처리 순서는 최신 순 그대로
+    result.selectedByHotTopics = true;
+  }
   result.skippedByCap = fresh.length - todo.length;
   if (todo.length === 0) return result;
 
@@ -163,7 +206,6 @@ export async function syncNews(db: Db, client: Anthropic): Promise<NewsSyncResul
   }
 
   // 3. Claude in batches -> Zod-validated -> save
-  const cats = await db.select().from(categories).orderBy(asc(categories.sortOrder));
   // 번역된 한국어 제목끼리도 비교 (영어 기사와 한국어 기사가 같은 내용일 때)
   const acceptedKo = [...storedTitles];
   for (let i = 0; i < todo.length; i += BATCH_SIZE) {

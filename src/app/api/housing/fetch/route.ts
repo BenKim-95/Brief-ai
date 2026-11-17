@@ -16,7 +16,8 @@ export async function POST(request: Request) {
   return Response.json({
     since,
     inserted: results.reduce((s, r) => s + r.inserted, 0),
-    existing: results.reduce((s, r) => s + r.existing, 0),
+    updated: results.reduce((s, r) => s + r.updated, 0),
+    unchanged: results.reduce((s, r) => s + r.unchanged, 0),
     images,
     results,
   });

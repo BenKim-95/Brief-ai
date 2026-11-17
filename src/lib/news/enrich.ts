@@ -94,3 +94,59 @@ export async function enrichBatch(
       categoryId: r.categoryId !== null && valid.has(r.categoryId) ? r.categoryId : null,
     }));
 }
+
+// --- 제목만 보고 카테고리 나누기 (새 기사가 한 번에 처리할 수보다 많을 때, 무엇을 먼저 가져올지 고르는 데만 쓴다) ---
+
+const CLASSIFY_SYSTEM = `당신은 기사 제목을 카테고리로 나누는 도우미예요. 제목만 보고 각 기사에 가장 알맞은 카테고리 id를 골라 JSON 배열만 돌려주세요.
+- 맞는 카테고리가 없으면 categoryId는 null.
+- 출력: [{"key":0,"categoryId":1}, ...] 형태의 JSON 배열만. 설명이나 코드블록은 쓰지 마세요.`;
+
+const classifySchema = z.array(z.object({ key: z.number().int(), categoryId: z.number().int().nullable() }));
+
+/** 한 번에 보내는 제목 수(제목만이라 응답이 짧다). */
+export const CLASSIFY_BATCH = 100;
+
+export type TitleToClassify = { key: number; title: string; sourceName: string };
+
+/**
+ * 제목만으로 카테고리를 정한다. 일부 묶음이 실패해도 던지지 않고, 그 기사들은 결과에서 빠진다(= 미분류 취급).
+ * 반환: key → 카테고리 id(없으면 null), 그리고 실패한 묶음 수.
+ */
+export async function classifyTitles(
+  client: Anthropic,
+  items: TitleToClassify[],
+  categories: CategoryInfo[],
+): Promise<{ byKey: Map<number, number | null>; failedBatches: number }> {
+  const byKey = new Map<number, number | null>();
+  let failedBatches = 0;
+  if (items.length === 0 || categories.length === 0) return { byKey, failedBatches };
+  const catText = categories
+    .map((c) => `- id ${c.id}: ${c.name}${c.description ? ` (${c.description})` : ""}`)
+    .join("\n");
+  const valid = new Set(categories.map((c) => c.id));
+
+  for (let i = 0; i < items.length; i += CLASSIFY_BATCH) {
+    const chunk = items.slice(i, i + CLASSIFY_BATCH);
+    try {
+      const msg = await client.messages.create({
+        model: NEWS_MODEL,
+        max_tokens: 4096,
+        system: [{ type: "text", text: CLASSIFY_SYSTEM, cache_control: { type: "ephemeral" } }],
+        messages: [
+          {
+            role: "user",
+            content: `카테고리:\n${catText}\n\n기사 제목:\n${chunk.map((a) => `[key ${a.key}] ${a.title}`).join("\n")}`,
+          },
+        ],
+      });
+      const text = msg.content.map((b) => (b.type === "text" ? b.text : "")).join("");
+      const keys = new Set(chunk.map((a) => a.key));
+      for (const r of classifySchema.parse(extractJson(text))) {
+        if (keys.has(r.key)) byKey.set(r.key, r.categoryId !== null && valid.has(r.categoryId) ? r.categoryId : null);
+      }
+    } catch {
+      failedBatches++;
+    }
+  }
+  return { byKey, failedBatches };
+}
