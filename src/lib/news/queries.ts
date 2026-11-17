@@ -78,3 +78,39 @@ export function timeAgo(d: Date, now = new Date()): string {
   const kst = new Date(d.getTime() + 9 * 3_600_000);
   return `${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일`;
 }
+
+const cardColumns = {
+  id: articles.id,
+  url: articles.url,
+  titleKo: articles.titleKo,
+  summaryKo: articles.summaryKo,
+  imageUrl: articles.imageUrl,
+  categoryId: articles.categoryId,
+  categoryName: categories.name,
+  sourceName: sources.name,
+  publishedAt: articles.publishedAt,
+  fetchedAt: articles.fetchedAt,
+};
+
+/** 기사 한 건(위젯·알림에서 바로 여는 화면용). 없으면 null. */
+export async function getArticleCard(db: Db, id: number): Promise<ArticleCard | null> {
+  const [row] = await db
+    .select(cardColumns)
+    .from(articles)
+    .leftJoin(categories, eq(articles.categoryId, categories.id))
+    .leftJoin(sources, eq(articles.sourceId, sources.id))
+    .where(eq(articles.id, id))
+    .limit(1);
+  return row ?? null;
+}
+
+/** 최신순으로 `limit`개(위젯용). 홈 목록과 같은 정렬 기준이다. */
+export async function listLatest(db: Db, limit: number): Promise<ArticleCard[]> {
+  return db
+    .select(cardColumns)
+    .from(articles)
+    .leftJoin(categories, eq(articles.categoryId, categories.id))
+    .leftJoin(sources, eq(articles.sourceId, sources.id))
+    .orderBy(desc(sql`coalesce(${articles.publishedAt}, ${articles.fetchedAt})`))
+    .limit(limit);
+}

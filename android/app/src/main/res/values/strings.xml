@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">브리프</string>
+    <string name="title_activity_main">브리프</string>
+    <string name="package_name">app.brief.news</string>
+    <string name="custom_url_scheme">app.brief.news</string>
+</resources>
