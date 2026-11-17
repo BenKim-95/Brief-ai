@@ -11,6 +11,8 @@ import {
 } from "react";
 
 export const ADMIN_TOKEN_KEY = "admin-token";
+/** 토큰을 입력하거나 지울 때 같은 화면의 다른 부분(관리자 전용 버튼 등)에 알리는 이벤트 */
+export const ADMIN_TOKEN_EVENT = "admin-token-change";
 const STORAGE_KEY = ADMIN_TOKEN_KEY;
 
 type Api = {
@@ -47,6 +49,7 @@ export function AdminApiProvider({ children }: { children: ReactNode }) {
     try {
       localStorage.setItem(STORAGE_KEY, t);
     } catch {}
+    window.dispatchEvent(new Event(ADMIN_TOKEN_EVENT));
   }, []);
 
   const call = useCallback<Api["call"]>(

@@ -119,6 +119,12 @@ Roadmap steps 1–7 and 9 are done in code (setup; source/category CRUD with adm
 - To verify by hand: build in Android Studio, add the widget on a device/emulator, check the 3 headlines, tap one → opens `/articles/<id>` in the app, and run `./gradlew test` for `WidgetDataTest`. The Android template's `ExampleInstrumentedTest` uses a different package name and would fail if run; ignore or delete it.
 - `eslint.config.mjs` now ignores `.claude/**`, `android/**`, `capacitor-www/**` (before, `npm run lint` scanned leftover worktrees and reported ~19k problems).
 
+## 홈 "설정" 버튼은 관리자에게만 (2026-11-17)
+
+- `src/components/admin-only.tsx` wraps the home header's "설정" link (`src/app/page.tsx`). It reads the saved admin token, asks `GET /api/admin/check` (admin token → 200, else 401/503) and renders its children only on 200; while checking, with no token or with a wrong token it renders nothing. It re-checks (debounced 400 ms) on the `admin-token-change` window event (`ADMIN_TOKEN_EVENT`, dispatched by `setToken` in `src/app/admin/admin-api.tsx`) and on `storage`.
+- This only hides the entry point. Real protection is still each admin API's `requireAdmin`; the `/admin/*` pages open for anyone who types the URL but can do nothing without the token. 저장함 and 알림 stay visible to everyone; the home's "뉴스 가져오기" block (with its token field) is also still visible to everyone, as before.
+- First-time access: type the token into the home's token field (shown when no token is saved) or open `/admin/sources` directly; the button appears once the token is accepted. E2E: `e2e/admin-visibility.spec.ts`.
+
 ## E2E (Playwright)
 
 - `npm run test:e2e` builds the app and runs it with `next start` on port 3200 (`playwright.config.ts`), then runs `e2e/*.spec.ts` at a 380px mobile viewport, one worker. First time: `npx playwright install chromium`.

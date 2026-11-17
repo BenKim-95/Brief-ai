@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { getDb, hasDatabaseUrl } from "@/db";
 import { FetchNewsButton } from "./fetch-news-button";
+import { AdminOnly } from "@/components/admin-only";
 import { Pagination } from "@/components/pagination";
 import {
   ARTICLES_PER_PAGE,
@@ -52,12 +53,14 @@ function Header() {
         >
           알림
         </Link>
-        <Link
-          href="/admin/sources"
-          className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm text-sub"
-        >
-          설정
-        </Link>
+        <AdminOnly>
+          <Link
+            href="/admin/sources"
+            className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm text-sub"
+          >
+            설정
+          </Link>
+        </AdminOnly>
       </nav>
     </header>
   );
