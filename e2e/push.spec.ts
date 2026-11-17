@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { ADMIN_TOKEN } from "./helpers";
+import { ADMIN_TOKEN, signInAsAdmin } from "./helpers";
 
 const auth = { "x-admin-token": ADMIN_TOKEN };
 const endpoint = "https://push.example.com/e2e-endpoint-1";
@@ -36,7 +36,8 @@ test.describe("웹 푸시 API", () => {
     expect((await res.json()).error).toContain("푸시 키");
   });
 
-  test("알림 설정 화면이 열리고 홈에서 이어진다", async ({ page }) => {
+  test("알림 설정 화면이 열리고 홈에서 이어진다(관리자)", async ({ page }) => {
+    await signInAsAdmin(page);
     await page.goto("/");
     await page.getByRole("link", { name: "알림" }).click();
     await expect(page).toHaveURL(/\/notifications$/);

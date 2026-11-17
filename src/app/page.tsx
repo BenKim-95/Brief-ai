@@ -153,7 +153,9 @@ async function News({ searchParams }: { searchParams: Promise<Search> }) {
         <span aria-hidden>›</span>
       </Link>
 
-      <FetchNewsButton />
+      <AdminOnly>
+        <FetchNewsButton />
+      </AdminOnly>
 
       <nav aria-label="카테고리" className="-mx-5 mt-6 flex gap-2 overflow-x-auto px-5 pb-1">
         <Chip href="/" active={categoryId === undefined}>전체</Chip>

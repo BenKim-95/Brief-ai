@@ -23,7 +23,7 @@ function urlBase64ToBytes(base64: string): Uint8Array<ArrayBuffer> {
 
 async function callApi(method: string, path: string, body?: unknown) {
   const token = readToken();
-  if (!token) throw new Error("홈의 토큰 입력칸에 관리 토큰을 먼저 넣어 주세요.");
+  if (!token) throw new Error("관리 토큰이 필요해요. 관리 화면(/admin/sources)에서 먼저 입력해 주세요.");
   const res = await fetch(path, {
     method,
     headers: { "x-admin-token": token, ...(body ? { "content-type": "application/json" } : {}) },

@@ -122,8 +122,9 @@ Roadmap steps 1–7 and 9 are done in code (setup; source/category CRUD with adm
 ## 홈 "설정" 버튼은 관리자에게만 (2026-11-17)
 
 - `src/components/admin-only.tsx` wraps the home header's "설정" link (`src/app/page.tsx`). It reads the saved admin token, asks `GET /api/admin/check` (admin token → 200, else 401/503) and renders its children only on 200; while checking, with no token or with a wrong token it renders nothing. It re-checks (debounced 400 ms) on the `admin-token-change` window event (`ADMIN_TOKEN_EVENT`, dispatched by `setToken` in `src/app/admin/admin-api.tsx`) and on `storage`.
-- This only hides the entry point. Real protection is still each admin API's `requireAdmin`; the `/admin/*` pages open for anyone who types the URL but can do nothing without the token. 저장함 and 알림 stay visible to everyone; the home's "뉴스 가져오기" block (with its token field) is also still visible to everyone, as before.
-- First-time access: type the token into the home's token field (shown when no token is saved) or open `/admin/sources` directly; the button appears once the token is accepted. E2E: `e2e/admin-visibility.spec.ts`.
+- `AdminOnly` takes an optional `fallback` for non-admins (nothing is drawn while the check is running, so admins see no flicker). Wrapped with it: the home "설정" link and "뉴스 가져오기" block, the `/housing` "청약 정보 가져오기" block, and on `/notifications` the push toggle + email address form (non-admins see "알림 설정은 관리자만 바꿀 수 있어요." instead). The token input field was removed from the home and `/housing`.
+- This only hides the UI. Real protection is still each admin API's `requireAdmin`; the `/admin/*` pages open for anyone who types the URL but can do nothing without the token. Still visible to everyone: 저장함, the 알림 link, and the per-card 저장 button (it needs the token too and shows "관리 토큰이 필요해요…" without one; hiding it would also empty 저장함 for visitors, so it was left as is).
+- **First-time access: the only place to type the token is `/admin/sources` (type the URL; every `/admin/*` page has the token field).** After that the hidden items appear on the home, `/housing` and `/notifications`. E2E: `e2e/admin-visibility.spec.ts`.
 
 ## E2E (Playwright)
 

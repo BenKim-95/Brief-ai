@@ -34,7 +34,7 @@ export function SaveButton({
         try {
           token = localStorage.getItem(ADMIN_TOKEN_KEY) ?? sessionStorage.getItem(ADMIN_TOKEN_KEY) ?? "";
         } catch {}
-        if (!token) throw new Error("홈의 토큰 입력칸에 관리 토큰을 먼저 넣어 주세요.");
+        if (!token) throw new Error("관리 토큰이 필요해요. 관리 화면(/admin/sources)에서 먼저 입력해 주세요.");
         const res = await fetch(`${apiBase}/${articleId}`, {
           method: next ? "PUT" : "DELETE",
           headers: { "x-admin-token": token },

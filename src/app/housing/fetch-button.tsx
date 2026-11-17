@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AdminApiProvider, useAdminApi } from "@/app/admin/admin-api";
-import { TokenField } from "@/app/admin/token-field";
 import { Button } from "@/components/ui/button";
 
 type FetchResult = {
@@ -43,7 +42,6 @@ function Inner() {
 
   return (
     <div className="mb-5">
-      {!token && <TokenField />}
       <Button
         onClick={() => void run()}
         disabled={busy || !token}

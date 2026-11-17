@@ -14,6 +14,7 @@ import {
 } from "@/lib/housing/queries";
 import { savedNoticeIdSet } from "@/lib/housing/saved";
 import { todayKst } from "@/lib/housing/status";
+import { AdminOnly } from "@/components/admin-only";
 import { HousingNoticeCard } from "@/components/housing-notice-card";
 import { FetchButton } from "./fetch-button";
 
@@ -191,7 +192,9 @@ export default function HousingPage({ searchParams }: PageProps<"/housing">) {
       <p className="mb-4 text-sm text-muted-foreground">
         청약홈에 올라온 분양 공고의 일정을 모아 보여드려요.
       </p>
-      <FetchButton />
+      <AdminOnly>
+        <FetchButton />
+      </AdminOnly>
       <Suspense fallback={<p className="text-sm">공고를 불러오고 있어요…</p>}>
         <Notices searchParams={searchParams} />
       </Suspense>

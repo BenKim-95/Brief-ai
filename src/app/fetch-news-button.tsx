@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AdminApiProvider, useAdminApi } from "@/app/admin/admin-api";
-import { TokenField } from "@/app/admin/token-field";
 
 type FetchResult = {
   sources: { name: string; ok: boolean; error?: string }[];
@@ -60,7 +59,6 @@ function Inner() {
 
   return (
     <div className="mt-3">
-      {!token && <TokenField />}
       <button
         type="button"
         onClick={() => void run()}

@@ -11,15 +11,18 @@ function readToken(): string {
   }
 }
 
+type Status = "checking" | "admin" | "guest";
+
 /**
  * 관리자에게만 보인다. 이 브라우저에 저장된 관리 토큰을 서버에 확인해서(GET /api/admin/check)
- * 맞을 때만 자식을 그린다. 토큰이 없거나 틀리거나 확인 중일 때는 아무것도 그리지 않는다.
+ * 맞을 때만 자식을 그린다. 토큰이 없거나 틀리면 `fallback`(없으면 아무것도 안 그림)을 그리고,
+ * 확인하는 동안에는 깜빡이지 않도록 아무것도 그리지 않는다.
  * 토큰을 입력하거나 지우면(같은 화면이든 다른 탭이든) 다시 확인한다.
  *
  * 화면에서 숨기는 것일 뿐 보호는 아니다. 관리 기능의 실제 보호는 각 관리 API 의 토큰 검사가 맡는다.
  */
-export function AdminOnly({ children }: { children: ReactNode }) {
-  const [isAdmin, setIsAdmin] = useState(false);
+export function AdminOnly({ children, fallback = null }: { children: ReactNode; fallback?: ReactNode }) {
+  const [status, setStatus] = useState<Status>("checking");
 
   useEffect(() => {
     let alive = true;
@@ -30,15 +33,15 @@ export function AdminOnly({ children }: { children: ReactNode }) {
       const mine = ++seq;
       const token = readToken();
       if (!token) {
-        setIsAdmin(false);
+        setStatus("guest");
         return;
       }
       fetch("/api/admin/check", { headers: { "x-admin-token": token }, cache: "no-store" })
         .then((res) => {
-          if (alive && mine === seq) setIsAdmin(res.ok);
+          if (alive && mine === seq) setStatus(res.ok ? "admin" : "guest");
         })
         .catch(() => {
-          if (alive && mine === seq) setIsAdmin(false);
+          if (alive && mine === seq) setStatus("guest");
         });
     }
 
@@ -59,5 +62,7 @@ export function AdminOnly({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  return isAdmin ? <>{children}</> : null;
+  if (status === "admin") return <>{children}</>;
+  if (status === "guest") return <>{fallback}</>;
+  return null;
 }
