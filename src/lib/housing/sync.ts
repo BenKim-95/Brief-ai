@@ -1,4 +1,4 @@
-import { asc, eq, inArray, sql } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import type { getDb } from "@/db";
 import { housingCategories, housingFeeds, housingNotices } from "@/db/schema";
 import { fetchApplyhomeFeed, type NoticeInput } from "./applyhome";
@@ -62,14 +62,18 @@ export type FeedResult = {
   ok: boolean;
   received: number;
   inserted: number;
-  updated: number;
+  /** 이미 저장돼 있어 건너뛴 공고 수 */
+  existing: number;
   skipped: number;
   error?: string;
 };
 
-async function upsertNotices(db: Db, feedId: number, notices: NoticeInput[]) {
-  // The same notice can appear twice across pages; ON CONFLICT can't touch a
-  // row twice in one statement.
+/**
+ * 새 공고만 저장한다. 이미 저장된 공고(공고 번호가 같은 것)는 건드리지 않고 건너뛴다
+ * → 매일 같은 공고가 다시 들어와도 DB 쓰기·갱신이 없다. (공고 일정이 바뀌어도 반영하지 않는다.)
+ */
+export async function insertNewNotices(db: Db, feedId: number, notices: NoticeInput[]) {
+  // 같은 공고가 여러 쪽에 걸쳐 두 번 올 수 있어 공고 번호로 먼저 합친다.
   const unique = [...new Map(notices.map((n) => [n.externalId, n])).values()];
   let inserted = 0;
   for (let i = 0; i < unique.length; i += UPSERT_CHUNK) {
@@ -77,31 +81,14 @@ async function upsertNotices(db: Db, feedId: number, notices: NoticeInput[]) {
     const res = await db
       .insert(housingNotices)
       .values(chunk.map((n) => ({ ...n, feedId })))
-      .onConflictDoUpdate({
-        target: housingNotices.externalId,
-        set: {
-          feedId: sql`excluded.feed_id`,
-          name: sql`excluded.name`,
-          typeLabel: sql`excluded.type_label`,
-          region: sql`excluded.region`,
-          address: sql`excluded.address`,
-          supplyCount: sql`excluded.supply_count`,
-          announcedOn: sql`excluded.announced_on`,
-          receiptStart: sql`excluded.receipt_start`,
-          receiptEnd: sql`excluded.receipt_end`,
-          winnerOn: sql`excluded.winner_on`,
-          detailUrl: sql`excluded.detail_url`,
-          raw: sql`excluded.raw`,
-          updatedAt: sql`now()`,
-        },
-      })
-      .returning({ inserted: sql<boolean>`(xmax = 0)` });
-    inserted += res.filter((r) => r.inserted).length;
+      .onConflictDoNothing({ target: housingNotices.externalId })
+      .returning({ id: housingNotices.id });
+    inserted += res.length;
   }
-  return { inserted, updated: unique.length - inserted };
+  return { inserted, existing: unique.length - inserted };
 }
 
-/** Pulls every active feed, upserts notices, then reclassifies. */
+/** Pulls every active feed, saves only the new notices, then classifies. */
 export async function syncHousing(db: Db, serviceKey: string) {
   const feeds = await db
     .select()
@@ -119,15 +106,15 @@ export async function syncHousing(db: Db, serviceKey: string) {
         serviceKey,
         since,
       );
-      const { inserted, updated } = await upsertNotices(db, feed.id, notices);
-      results.push({ ...base, ok: true, received: notices.length, inserted, updated, skipped });
+      const { inserted, existing } = await insertNewNotices(db, feed.id, notices);
+      results.push({ ...base, ok: true, received: notices.length, inserted, existing, skipped });
     } catch (e) {
       results.push({
         ...base,
         ok: false,
         received: 0,
         inserted: 0,
-        updated: 0,
+        existing: 0,
         skipped: 0,
         error: e instanceof Error ? e.message : String(e),
       });

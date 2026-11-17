@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 
 type FetchResult = {
   inserted: number;
-  updated: number;
+  existing: number;
   images?: { filled: number; error?: string };
   results: { name: string; ok: boolean; error?: string }[];
 };
@@ -30,7 +30,7 @@ function Inner() {
       setMessage(
         r.results.length === 0
           ? "켜져 있는 청약 API가 없어요. 관리 화면에서 등록해 주세요."
-          : `새 공고 ${r.inserted}건, 일정 갱신 ${r.updated}건이에요.${r.images?.filled ? ` 사진 ${r.images.filled}장을 찾았어요.` : ""}`,
+          : `새 공고 ${r.inserted}건을 담았어요. (이미 있는 공고 ${r.existing}건은 건너뛰었어요.)${r.images?.filled ? ` 사진 ${r.images.filled}장을 찾았어요.` : ""}`,
       );
       router.refresh();
     } catch (e) {

@@ -21,8 +21,6 @@ const DEDUPE_MAX_ROWS = 3000;
 
 /** RSS에 이미지가 없는 기사의 og:image 조회를 동시에 몇 개까지 할지. */
 const IMAGE_LOOKUP_CONCURRENCY = 5;
-/** 이미 저장된 기사에 이미지를 채워 넣는 건 한 번에 이만큼만. */
-const IMAGE_BACKFILL_MAX = 200;
 
 const parser = new Parser({
   timeout: 10000,
@@ -112,30 +110,18 @@ export async function syncNews(db: Db, client: Anthropic): Promise<NewsSyncResul
   );
   result.sources.sort((a, b) => a.id - b.id);
 
-  // 2. Dedupe (never re-call Claude for stored articles)
+  // 2. Dedupe: 이미 저장된 기사는 건너뛴다. Claude 에 보내지도, 사진 등을 다시 채우지도, 갱신하지도 않는다.
+  //    새 기사만 아래로 내려간다(매시간 자동 수집이라 같은 기사가 계속 다시 들어온다).
   //    - 같은 URL (추적 파라미터 등을 뺀 주소 기준)
   //    - 이미 저장됐거나 이번 수집에서 먼저 나온 기사와 제목이 비슷한 것
   const urls = [...candidates.values()].map((c) => c.url);
   const existingExact = new Set<string>();
-  const missingImage = new Set<string>(); // 저장은 됐지만 이미지가 비어 있는 기사
   for (let i = 0; i < urls.length; i += 500) {
     const rows = await db
-      .select({ url: articles.url, imageUrl: articles.imageUrl })
+      .select({ url: articles.url })
       .from(articles)
       .where(inArray(articles.url, urls.slice(i, i + 500)));
-    for (const r of rows) {
-      existingExact.add(r.url);
-      if (!r.imageUrl) missingImage.add(r.url);
-    }
-  }
-  // 이번 RSS가 이미지를 주면 이미 저장된 기사에도 채워 넣는다 (Claude 호출 없음).
-  let backfilled = 0;
-  for (const c of candidates.values()) {
-    if (backfilled >= IMAGE_BACKFILL_MAX) break;
-    if (c.imageUrl && missingImage.has(c.url)) {
-      await db.update(articles).set({ imageUrl: c.imageUrl }).where(eq(articles.url, c.url));
-      backfilled++;
-    }
+    for (const r of rows) existingExact.add(r.url);
   }
   const since = new Date(Date.now() - DEDUPE_DAYS * 24 * 60 * 60 * 1000);
   const recent = await db
