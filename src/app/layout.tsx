@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_KR } from "next/font/google";
+import { NativeLinkHandler } from "@/components/native-link-handler";
 import { PwaClient } from "@/components/pwa-client";
 import "./globals.css";
 
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         {children}
         <PwaClient />
+        <NativeLinkHandler />
       </body>
     </html>
   );
