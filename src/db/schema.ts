@@ -94,6 +94,18 @@ export const savedHousingNotices = pgTable(
   (t) => [unique("saved_housing_notices_notice_user_uq").on(t.noticeId, t.userId).nullsNotDistinct()],
 );
 
+/**
+ * 방문자(브라우저)별 프로필. 로그인 전까지는 쿠키의 방문자 번호(`v:<uuid>`)가 키다.
+ * 닉네임은 커뮤니티에, 관심 카테고리는 "나와 관련된 소식"에 쓴다.
+ */
+export const visitorProfiles = pgTable("visitor_profiles", {
+  visitorId: text("visitor_id").primaryKey(),
+  nickname: text("nickname").notNull().default(""),
+  interestCategoryIds: integer("interest_category_ids").array().notNull().default([]),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const pushSubscriptions = pgTable("push_subscriptions", {
   id: serial("id").primaryKey(),
   endpoint: text("endpoint").notNull().unique(),
