@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { E2E_PREFIX, NEWS_MODEL_COUNT, NEWS_POLICY_COUNT, NEWS_TOTAL } from "./global-setup";
-import { ADMIN_TOKEN, signInAsAdmin } from "./helpers";
+import { signInAsAdmin } from "./helpers";
 
 const card = (page: import("@playwright/test").Page, title: string) =>
   page.getByRole("listitem").filter({ has: page.getByRole("heading", { name: title }) });
@@ -93,23 +93,62 @@ test.describe("저장", () => {
     await expect(page.getByText("저장한 소식이 없어요")).toBeVisible();
   });
 
-  test("토큰이 없으면 저장되지 않고, 안내 문구도 띄우지 않는다", async ({ page }) => {
+  test("관리 토큰이 없는 방문자도 저장하고 저장을 풀 수 있다", async ({ page }) => {
     await page.addInitScript(() => {
       try {
         localStorage.removeItem("admin-token");
       } catch {}
     });
-    let sawApiCall = false;
-    page.on("request", (r) => {
-      if (/\/api\/saved\/\d+$/.test(r.url())) sawApiCall = true;
-    });
     await page.goto("/");
     const first = page.getByRole("listitem").filter({ has: page.getByRole("heading", { level: 3 }) }).first();
+    const title = (await first.getByRole("heading", { level: 3 }).textContent()) ?? "";
+    const put = page.waitForResponse((r) => /\/api\/saved\/\d+$/.test(r.url()) && r.request().method() === "PUT");
     await first.getByRole("button", { name: "☆ 저장" }).click();
-    await expect(first.getByRole("button", { name: "☆ 저장" })).toBeVisible();
+    expect((await put).status()).toBe(200);
+    await expect(first.getByRole("button", { name: "★ 저장됨" })).toBeVisible();
     await expect(first.getByRole("alert")).toHaveCount(0);
-    await expect(page.getByText("관리 토큰이 필요해요")).toHaveCount(0);
-    expect(sawApiCall).toBe(false);
+
+    await page.goto("/saved");
+    const savedCard = card(page, title);
+    await expect(savedCard).toBeVisible();
+    // 저장 취소 버튼은 눌러 볼 수 있고(비활성화 아님), 누르면 카드가 사라진다.
+    const del = page.waitForResponse((r) => /\/api\/saved\/\d+$/.test(r.url()) && r.request().method() === "DELETE");
+    const cancel = savedCard.getByRole("button", { name: "★ 저장됨" });
+    await expect(cancel).toBeEnabled();
+    await cancel.click();
+    expect((await del).status()).toBe(200);
+    await expect(page.getByText("저장한 소식이 없어요")).toBeVisible();
+  });
+
+  test("저장함은 방문자마다 따로다 (다른 브라우저에는 보이지 않는다)", async ({ browser }) => {
+    const a = await browser.newContext({ viewport: { width: 380, height: 800 } });
+    const b = await browser.newContext({ viewport: { width: 380, height: 800 } });
+    try {
+      const pa = await a.newPage();
+      const pb = await b.newPage();
+      await pa.goto("/");
+      const first = pa.getByRole("listitem").filter({ has: pa.getByRole("heading", { level: 3 }) }).first();
+      const put = pa.waitForResponse((r) => /\/api\/saved\/\d+$/.test(r.url()) && r.request().method() === "PUT");
+      await first.getByRole("button", { name: "☆ 저장" }).click();
+      expect((await put).status()).toBe(200);
+
+      await pa.goto("/saved");
+      await expect(pa.getByRole("heading", { level: 3 })).toHaveCount(1);
+
+      // 다른 방문자: 저장함이 비어 있고 홈 카드에도 ★가 없다.
+      await pb.goto("/saved");
+      await expect(pb.getByText("저장한 소식이 없어요")).toBeVisible();
+      await pb.goto("/");
+      await expect(pb.getByRole("button", { name: "★ 저장됨" })).toHaveCount(0);
+
+      // 뒷정리: 원래 방문자가 저장을 푼다.
+      const del = pa.waitForResponse((r) => /\/api\/saved\/\d+$/.test(r.url()) && r.request().method() === "DELETE");
+      await pa.getByRole("button", { name: "★ 저장됨" }).click();
+      expect((await del).status()).toBe(200);
+    } finally {
+      await a.close();
+      await b.close();
+    }
   });
 
   test("다른 화면으로 옮기는 동안 상단 로딩바가 보였다가 사라진다", async ({ page }) => {
@@ -130,9 +169,7 @@ test.describe("저장", () => {
     await expect(page.locator("[data-nav-progress]")).toHaveCount(0, { timeout: 3000 });
   });
 
-  test("API는 토큰 없이 호출하면 401, 있는 기사만 저장된다", async ({ request }) => {
-    expect((await request.put("/api/saved/1")).status()).toBe(401);
-    const missing = await request.put("/api/saved/99999999", { headers: { "x-admin-token": ADMIN_TOKEN } });
-    expect(missing.status()).toBe(404);
+  test("API: 없는 기사는 404", async ({ request }) => {
+    expect((await request.put("/api/saved/99999999")).status()).toBe(404);
   });
 });

@@ -13,6 +13,7 @@ import {
   listRegions,
 } from "@/lib/housing/queries";
 import { savedNoticeIdSet } from "@/lib/housing/saved";
+import { readVisitorId } from "@/lib/visitor";
 import { todayKst } from "@/lib/housing/status";
 import { AdminOnly } from "@/components/admin-only";
 import { HousingNoticeCard } from "@/components/housing-notice-card";
@@ -111,6 +112,7 @@ async function Notices({ searchParams }: { searchParams: Promise<Search> }) {
   const savedIds = await savedNoticeIdSet(
     db,
     notices.map((n) => n.id),
+    await readVisitorId(),
   );
   const categoryName = new Map(categories.map((c) => [c.id, c.name]));
 

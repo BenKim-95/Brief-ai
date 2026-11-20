@@ -6,6 +6,7 @@ import { HousingNoticeCard } from "@/components/housing-notice-card";
 import { getDb, hasDatabaseUrl } from "@/db";
 import { listHousingCategories } from "@/lib/housing/queries";
 import { listSavedNotices } from "@/lib/housing/saved";
+import { readVisitorId } from "@/lib/visitor";
 import { todayKst } from "@/lib/housing/status";
 
 export const metadata: Metadata = { title: "저장한 청약 공고" };
@@ -21,7 +22,7 @@ async function SavedNotices() {
   // "Today" must be computed per request, not baked into the prerender.
   await connection();
   const db = getDb();
-  const [notices, categories] = await Promise.all([listSavedNotices(db), listHousingCategories(db)]);
+  const [notices, categories] = await Promise.all([listSavedNotices(db, await readVisitorId()), listHousingCategories(db)]);
   const today = todayKst();
   const categoryName = new Map(categories.map((c) => [c.id, c.name]));
 

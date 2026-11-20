@@ -12,6 +12,7 @@ import {
   listCategories,
 } from "@/lib/news/queries";
 import { savedIdSet } from "@/lib/news/saved";
+import { readVisitorId } from "@/lib/visitor";
 import { ArticleCardItem } from "@/components/article-card";
 
 type Search = { [key: string]: string | string[] | undefined };
@@ -119,6 +120,7 @@ async function News({ searchParams }: { searchParams: Promise<Search> }) {
   const savedIds = await savedIdSet(
     db,
     items.map((a) => a.id),
+    await readVisitorId(),
   );
   const pageHref = (n: number) => {
     const p = new URLSearchParams();

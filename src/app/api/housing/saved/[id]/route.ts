@@ -1,15 +1,13 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { housingNotices, savedHousingNotices } from "@/db/schema";
-import { requireAdmin } from "@/lib/admin-auth";
 import { parseId } from "@/lib/api";
+import { ensureVisitorId, readVisitorId } from "@/lib/visitor";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-/** Save a 청약 공고 (idempotent). `id` is the housing notice id. */
-export async function PUT(request: Request, { params }: Ctx) {
-  const denied = requireAdmin(request);
-  if (denied) return denied;
+/** 이 방문자의 저장함에 청약 공고를 담는다(여러 번 눌러도 한 번만). `id`는 공고 id. */
+export async function PUT(_request: Request, { params }: Ctx) {
   const idResult = await parseId(params);
   if ("error" in idResult) return idResult.error;
   const db = getDb();
@@ -18,22 +16,23 @@ export async function PUT(request: Request, { params }: Ctx) {
     .from(housingNotices)
     .where(eq(housingNotices.id, idResult.id));
   if (!notice) return Response.json({ error: "찾을 수 없는 공고예요." }, { status: 404 });
-  // Unique on (notice_id, user_id) NULLS NOT DISTINCT: a second save is a no-op.
+  const visitorId = await ensureVisitorId();
   await db
     .insert(savedHousingNotices)
-    .values({ noticeId: idResult.id, userId: null })
+    .values({ noticeId: idResult.id, userId: visitorId })
     .onConflictDoNothing();
   return Response.json({ saved: true });
 }
 
-/** Un-save a 청약 공고 (idempotent). */
-export async function DELETE(request: Request, { params }: Ctx) {
-  const denied = requireAdmin(request);
-  if (denied) return denied;
+/** 이 방문자의 저장함에서 청약 공고를 뺀다(없어도 성공). */
+export async function DELETE(_request: Request, { params }: Ctx) {
   const idResult = await parseId(params);
   if ("error" in idResult) return idResult.error;
-  await getDb()
-    .delete(savedHousingNotices)
-    .where(and(eq(savedHousingNotices.noticeId, idResult.id), isNull(savedHousingNotices.userId)));
+  const visitorId = await readVisitorId();
+  if (visitorId) {
+    await getDb()
+      .delete(savedHousingNotices)
+      .where(and(eq(savedHousingNotices.noticeId, idResult.id), eq(savedHousingNotices.userId, visitorId)));
+  }
   return Response.json({ saved: false });
 }
