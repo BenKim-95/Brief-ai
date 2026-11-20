@@ -2,6 +2,7 @@ import { timeAgo, type ArticleCard } from "@/lib/news/queries";
 import { CardImage } from "./card-image";
 import { ReminderMenu } from "./reminder-menu";
 import { SaveButton } from "./save-button";
+import { ShareButton } from "./share-button";
 
 /** 홈과 저장 페이지가 함께 쓰는 뉴스 카드. */
 export function ArticleCardItem({
@@ -34,6 +35,7 @@ export function ArticleCardItem({
           원문 보기 ↗
         </a>
         <SaveButton articleId={a.id} initialSaved={saved} removeOnUnsave={removeOnUnsave} />
+        <ShareButton path={`/articles/${a.id}`} title={a.titleKo} text={a.summaryKo} />
         <ReminderMenu articleId={a.id} />
       </div>
     </li>
