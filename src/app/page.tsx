@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { getDb, hasDatabaseUrl } from "@/db";
 import { FetchNewsButton } from "./fetch-news-button";
 import { AdminOnly } from "@/components/admin-only";
+import { MainNav } from "@/components/main-nav";
 import { Pagination } from "@/components/pagination";
 import {
   ARTICLES_PER_PAGE,
@@ -154,6 +155,8 @@ async function News({ searchParams }: { searchParams: Promise<Search> }) {
         </h1>
       </section>
 
+      <MainNav current="/" />
+
       <Link
         href="/housing"
         className="mt-5 flex min-h-14 items-center justify-between rounded-[20px] bg-brand px-5 text-base font-bold text-primary-foreground"
@@ -175,7 +178,7 @@ async function News({ searchParams }: { searchParams: Promise<Search> }) {
         ))}
       </nav>
 
-      <h2 className="mt-6 mb-3 text-base font-bold">나와 관련된 소식</h2>
+      <h2 className="mt-6 mb-3 text-base font-bold">뉴스 피드</h2>
       {total === 0 ? (
         <Notice title="저장된 소식이 없어요">
           관리 화면에서 &quot;뉴스 가져오기&quot;를 실행하면 여기에 카드가 생겨요.

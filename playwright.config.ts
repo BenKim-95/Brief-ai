@@ -36,6 +36,7 @@ export default defineConfig({
     env: {
       // Next는 프로세스 환경변수를 .env.local 보다 우선한다 → 운영 DB로 새지 않는다.
       DATABASE_URL: databaseUrl,
+      NEXT_DIST_DIR: ".next-e2e",
       ADMIN_TOKEN: E2E_ADMIN_TOKEN,
       // 외부 호출(Claude, 공공데이터)은 E2E에서 쓰지 않는다.
       ANTHROPIC_API_KEY: "",

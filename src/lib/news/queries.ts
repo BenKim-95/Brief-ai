@@ -1,4 +1,4 @@
-import { asc, desc, eq, exists, sql } from "drizzle-orm";
+import { asc, desc, eq, exists, inArray, sql } from "drizzle-orm";
 import type { getDb } from "@/db";
 import { articles, categories, sources } from "@/db/schema";
 
@@ -19,21 +19,32 @@ export type ArticleCard = {
 
 export const ARTICLES_PER_PAGE = 6;
 
+/** 카테고리 하나(categoryId) 또는 여러 개(categoryIds)로 거른다. 빈 배열이면 아무 기사도 걸리지 않는다. */
+function categoryFilter(opts: { categoryId?: number; categoryIds?: number[] }) {
+  if (opts.categoryIds) {
+    return opts.categoryIds.length ? inArray(articles.categoryId, opts.categoryIds) : sql`false`;
+  }
+  return opts.categoryId ? eq(articles.categoryId, opts.categoryId) : undefined;
+}
+
 /** Total stored articles, plus how many are newer than `since` (for the headline). */
-export async function countArticles(db: Db, opts: { categoryId?: number; since: Date }) {
+export async function countArticles(
+  db: Db,
+  opts: { categoryId?: number; categoryIds?: number[]; since: Date },
+) {
   const [row] = await db
     .select({
       total: sql<number>`count(*)::int`,
       fresh: sql<number>`(count(*) filter (where coalesce(${articles.publishedAt}, ${articles.fetchedAt}) >= ${opts.since.toISOString()}::timestamptz))::int`,
     })
     .from(articles)
-    .where(opts.categoryId ? eq(articles.categoryId, opts.categoryId) : undefined);
+    .where(categoryFilter(opts));
   return { total: row?.total ?? 0, fresh: row?.fresh ?? 0 };
 }
 
 export async function listArticles(
   db: Db,
-  opts: { categoryId?: number; page?: number } = {},
+  opts: { categoryId?: number; categoryIds?: number[]; page?: number } = {},
 ): Promise<ArticleCard[]> {
   const page = opts.page ?? 1;
   return db
@@ -52,7 +63,7 @@ export async function listArticles(
     .from(articles)
     .leftJoin(categories, eq(articles.categoryId, categories.id))
     .leftJoin(sources, eq(articles.sourceId, sources.id))
-    .where(opts.categoryId ? eq(articles.categoryId, opts.categoryId) : undefined)
+    .where(categoryFilter(opts))
     .orderBy(desc(sql`coalesce(${articles.publishedAt}, ${articles.fetchedAt})`))
     .limit(ARTICLES_PER_PAGE)
     .offset((page - 1) * ARTICLES_PER_PAGE);
