@@ -2,8 +2,6 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { getDb, hasDatabaseUrl } from "@/db";
-import { FetchNewsButton } from "./fetch-news-button";
-import { AdminOnly } from "@/components/admin-only";
 import { MainNav } from "@/components/main-nav";
 import { Pagination } from "@/components/pagination";
 import {
@@ -17,13 +15,6 @@ import { readVisitorId } from "@/lib/visitor";
 import { ArticleCardItem } from "@/components/article-card";
 
 type Search = { [key: string]: string | string[] | undefined };
-
-const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
-
-function todayLabel() {
-  const kst = new Date(Date.now() + 9 * 3_600_000);
-  return `${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일 ${WEEKDAYS[kst.getUTCDay()]}요일`;
-}
 
 function Header() {
   return (
@@ -55,21 +46,7 @@ function Header() {
         >
           마이페이지
         </Link>
-        {/* 알림 설정은 일단 관리자에게만 보인다. 알림 규칙이 정해지면 다시 모두에게 연다. */}
-        <AdminOnly>
-          <Link
-            href="/notifications"
-            className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm text-sub"
-          >
-            알림
-          </Link>
-          <Link
-            href="/admin/sources"
-            className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm text-sub"
-          >
-            설정
-          </Link>
-        </AdminOnly>
+        {/* 알림·설정·뉴스 가져오기는 관리 메뉴(/admin)에만 있다. 일반 홈에는 두지 않는다. */}
       </nav>
     </header>
   );
@@ -118,7 +95,7 @@ async function News({ searchParams }: { searchParams: Promise<Search> }) {
   const rawPage = Array.isArray(sp.page) ? sp.page[0] : sp.page;
   const requested = rawPage && /^\d+$/.test(rawPage) ? Math.max(1, Number(rawPage)) : 1;
 
-  const { total, fresh } = await countArticles(db, { categoryId, since: dayAgo });
+  const { total } = await countArticles(db, { categoryId, since: dayAgo });
   const totalPages = Math.max(1, Math.ceil(total / ARTICLES_PER_PAGE));
   const page = Math.min(requested, totalPages);
   const [items, cats] = await Promise.all([
@@ -140,20 +117,8 @@ async function News({ searchParams }: { searchParams: Promise<Search> }) {
 
   return (
     <>
-      <section className="pt-5">
-        <p className="text-sm text-sub">{todayLabel()}</p>
-        <h1 className="mt-1 text-[26px] font-bold leading-[1.35]">
-          {total === 0 ? (
-            <>아직 볼 소식이<br />없어요</>
-          ) : (
-            <>
-              오늘 새 소식 {fresh}개,
-              <br />
-              지금까지 {total}개
-            </>
-          )}
-        </h1>
-      </section>
+      {/* 날짜와 "오늘 새 소식 N개, 지금까지 N개" 문구는 숨겼다. 화면 읽기 프로그램을 위해 제목만 눈에 안 띄게 남긴다. */}
+      <h1 className="sr-only">브리프 뉴스</h1>
 
       <MainNav current="/" />
 
@@ -164,10 +129,6 @@ async function News({ searchParams }: { searchParams: Promise<Search> }) {
         <span>청약 일정 보러 가기</span>
         <span aria-hidden>›</span>
       </Link>
-
-      <AdminOnly>
-        <FetchNewsButton />
-      </AdminOnly>
 
       <nav aria-label="카테고리" className="-mx-5 mt-6 flex gap-2 overflow-x-auto px-5 pb-1">
         <Chip href="/" active={categoryId === undefined}>전체</Chip>

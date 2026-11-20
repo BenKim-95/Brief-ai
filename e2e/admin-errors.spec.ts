@@ -29,6 +29,11 @@ test.describe("관리자 화면은 관리자만", () => {
     await signInAsAdmin(page);
     await page.goto("/admin");
     await expect(page.getByRole("heading", { name: "관리 메뉴" })).toBeVisible();
+    // 뉴스 가져오기·AI 해설 채우기 버튼은 숨겼고, 청약 정보 가져오기와 알림 설정은 관리 메뉴에 있다.
+    await expect(page.getByRole("button", { name: "뉴스 가져오기" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /AI 해설 채우기/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "청약 정보 가져오기" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "알림 설정" }).first()).toBeVisible();
     await page.getByRole("link", { name: /오류 코드·이슈 현황/ }).click();
     await expect(page).toHaveURL(/\/admin\/errors$/);
     await expect(page.getByRole("heading", { name: "오류 코드·이슈 현황" })).toBeVisible();

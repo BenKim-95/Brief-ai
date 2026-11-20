@@ -12,60 +12,70 @@ async function openHome(page: Page) {
   await expect(page.getByRole("heading", { level: 3 }).first()).toBeVisible();
 }
 
-test.describe("홈: 관리자 전용 항목", () => {
-  test("토큰이 없으면 설정·알림 버튼, 뉴스 가져오기, 토큰 입력칸이 모두 보이지 않는다(저장함은 보인다)", async ({ page }) => {
+const notifLink = (page: Page) => page.getByRole("link", { name: "알림", exact: true });
+
+test.describe("홈에는 관리자 버튼이 없다 (알림·설정·뉴스 가져오기는 관리 메뉴에만)", () => {
+  test("토큰이 없어도, 맞는 토큰이 저장돼 있어도 홈에는 설정·알림·뉴스 가져오기·토큰 입력칸이 없다", async ({ page }) => {
     await openHome(page);
-    await expect(settingsLink(page)).toHaveCount(0);
-    await expect(fetchNews(page)).toHaveCount(0);
-    await expect(tokenField(page)).toHaveCount(0);
+    for (const loc of [settingsLink(page), notifLink(page), fetchNews(page), tokenField(page)]) await expect(loc).toHaveCount(0);
     await expect(page.getByRole("link", { name: "저장함" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "알림", exact: true })).toHaveCount(0);
+
+    await signInAsAdmin(page);
+    await openHome(page);
+    await page.waitForTimeout(800); // 관리자 확인(/api/admin/check)이 끝나고도 나타나지 않는지 본다
+    for (const loc of [settingsLink(page), notifLink(page), fetchNews(page), tokenField(page)]) await expect(loc).toHaveCount(0);
+  });
+});
+
+test.describe("관리 메뉴(/admin): 관리자만 보고 쓸 수 있다", () => {
+  test("뉴스 가져오기·AI 해설 채우기 버튼은 토큰이 있어도 어디에도 없다", async ({ page }) => {
+    await signInAsAdmin(page);
+    for (const path of ["/admin", "/"]) {
+      await page.goto(path);
+      await page.waitForTimeout(800);
+      await expect(page.getByRole("button", { name: "뉴스 가져오기" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: /AI 해설 채우기/ })).toHaveCount(0);
+    }
   });
 
-  test("틀린 토큰이 저장돼 있어도 보이지 않는다", async ({ page }) => {
+  test("토큰이 없으면 버튼이 보이지 않고 안내만 나온다", async ({ page }) => {
+    await page.goto("/admin");
+    await expect(page.getByText("관리자만 쓸 수 있는 화면이에요")).toBeVisible();
+    await expect(fetchHousing(page)).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /알림 설정/ })).toHaveCount(0);
+  });
+
+  test("틀린 토큰이어도 보이지 않는다", async ({ page }) => {
     await signInAsAdmin(page, "wrong-token-value");
-    const checked = page.waitForResponse((r) => r.url().includes("/api/admin/check"));
-    await openHome(page);
-    expect((await checked).status()).toBe(401);
-    await expect(settingsLink(page)).toHaveCount(0);
-    await expect(fetchNews(page)).toHaveCount(0);
-    await expect(tokenField(page)).toHaveCount(0);
+    await page.goto("/admin");
+    await expect(page.getByText("관리자만 쓸 수 있는 화면이에요")).toBeVisible();
+    await expect(fetchHousing(page)).toHaveCount(0);
   });
 
-  test("맞는 토큰이 저장돼 있으면 설정 버튼과 뉴스 가져오기가 보이고, 설정을 누르면 관리 화면으로 간다", async ({ page }) => {
-    await signInAsAdmin(page);
-    await openHome(page);
-    await expect(settingsLink(page)).toBeVisible();
-    await expect(page.getByRole("link", { name: "알림", exact: true })).toBeVisible(); // 관리자에게만 보인다
-    await expect(fetchNews(page)).toBeVisible();
-    await expect(fetchNews(page)).toBeEnabled();
-    await expect(tokenField(page)).toHaveCount(0); // 토큰이 이미 있으니 입력칸은 필요 없다
-    await settingsLink(page).click();
-    await expect(page).toHaveURL(/\/admin\/sources$/);
-  });
-
-  test("관리 화면에서 토큰을 입력하면 홈에 관리자 항목이 나타난다", async ({ page }) => {
-    await openHome(page);
-    await expect(fetchNews(page)).toHaveCount(0);
-    await page.goto("/admin/sources");
+  test("관리 화면에서 토큰을 입력하면 청약 정보 가져오기와 알림 설정이 나타난다", async ({ page }) => {
+    await page.goto("/admin");
+    await expect(fetchHousing(page)).toHaveCount(0);
     await tokenField(page).fill(ADMIN_TOKEN); // 입력하면 브라우저에 저장된다
-    await page.goto("/");
-    await expect(settingsLink(page)).toBeVisible();
-    await expect(fetchNews(page)).toBeVisible();
+    await expect(fetchHousing(page)).toBeVisible();
+    await expect(fetchHousing(page)).toBeEnabled();
+    await page.getByRole("link", { name: /알림 설정/ }).first().click();
+    await expect(page).toHaveURL(/\/notifications$/);
   });
 
-  test("토큰이 서버에서 거절되면(401) 관리자 항목이 다시 사라진다", async ({ page }) => {
+  test("토큰이 서버에서 거절되면(401) 버튼이 다시 사라진다", async ({ page }) => {
     await signInAsAdmin(page);
-    await openHome(page);
-    await expect(settingsLink(page)).toBeVisible();
-    await expect(fetchNews(page)).toBeVisible();
-    // 다른 탭 등에서 토큰이 바뀐 상황
+    await page.goto("/admin");
+    await expect(fetchHousing(page)).toBeVisible();
     await page.evaluate(() => {
       localStorage.setItem("admin-token", "changed-elsewhere");
       window.dispatchEvent(new Event("admin-token-change"));
     });
-    await expect(settingsLink(page)).toHaveCount(0);
-    await expect(fetchNews(page)).toHaveCount(0);
+    await expect(fetchHousing(page)).toHaveCount(0);
+  });
+
+  test("뉴스 가져오기·AI 해설 API는 토큰 없이는 401 (버튼을 숨겨도 직접 호출은 막힌다)", async ({ request }) => {
+    expect((await request.post("/api/news/fetch")).status()).toBe(401);
+    expect((await request.post("/api/news/insights")).status()).toBe(401);
   });
 });
 
