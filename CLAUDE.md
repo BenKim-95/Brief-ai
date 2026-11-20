@@ -162,3 +162,10 @@ Roadmap steps 1–7 and 9 are done in code (setup; source/category CRUD with adm
 - `community`: `/community`(목록·글쓰기·상세·댓글), 테이블 `community_posts/comments/reports`(0012). 방문자별 닉네임(쓸 때 이름을 그대로 저장), 글 1시간 5개·댓글 20개 제한, 서로 다른 3명이 신고하면 자동으로 가려짐(`/admin/community` 에서 되살리기/삭제), 본인 또는 관리자만 삭제. 글은 글자 그대로 출력(HTML 실행 안 됨).
 - `admin-error-console`: `/admin` 은 관리 메뉴, `/admin/*` 는 `AdminOnly` 로 감싸 토큰이 맞을 때만 내용이 보인다. 오류 코드 `E-WEB|APP|SRV-xxxxx`(`src/lib/errors/code.ts`: 숫자·주소·긴 식별자를 지우고 해시, 같은 원인은 같은 코드), 테이블 `error_events`(0013). 수집: 브라우저·앱 `ErrorReporter`(+`error.tsx`/`global-error.tsx` 가 사용자에게 코드를 보여 줌, 오프라인 실패 등 잡음 제외, 화면당 5건) → `POST /api/errors`(공개, 같은 사이트 Origin만, 서로 다른 코드 500종 상한), 서버는 `src/instrumentation.ts` 의 `onRequestError`. 관리 화면 `/admin/errors`: 상태·출처 필터, 해결됨/무시/다시 열기/삭제(해결한 오류가 다시 나면 자동으로 처리 전), 서버 점검(DB, 마지막 뉴스·공고 시각, 설정 키 유무 — 값은 보여 주지 않음). 해결·무시한 기록은 90일 뒤 뉴스 크론이 정리한다.
 - E2E 주의: Cache Components 때문에 이전 화면이 숨겨진 채 DOM에 남을 수 있다 → `getByLabel`/`getByText` 가 숨은 화면까지 잡으니 `getByRole`(보이는 것만)이나 `locator("article")` 처럼 범위를 좁힌다. `getByRole(..., {name: new RegExp("[E2E] ...")})` 는 `[E2E]` 가 문자 클래스가 되므로 문자열을 쓴다. 새 테이블을 만들면 `e2e/global-setup.ts` 의 비우기 목록에 넣는다.
+
+## 2026-11-21 화면 정리 (사용자 요청)
+
+- 홈(`/`)에는 관리자 버튼이 없다: 알림·설정·뉴스 가져오기·토큰 입력칸 모두 제거. 알림 설정과 청약 정보 가져오기는 관리 메뉴(`/admin`)에서만 보이고(`AdminOnly`), 관리 화면의 위쪽 바로가기도 토큰이 맞을 때만 보인다. 일반 홈의 날짜·"오늘 새 소식 N개, 지금까지 N개" 문구도 숨겼다(눈에 안 띄는 `h1` 만 남김).
+- **"뉴스 가져오기"와 "AI 해설 채우기" 버튼은 어디에도 그리지 않는다**(`src/app/fetch-news-button.tsx` 는 남겨 둠, 다시 쓰려면 `/admin` 페이지에 `<FetchNewsButton />`). API(`/api/news/fetch`, `/api/news/insights`)와 매일 자동 수집(크론)은 그대로이고 토큰 없이는 401이다.
+- 운영 DB에서 연합뉴스(`sources.id=4`)를 `active=false` 로 끄고 그 기사 109건을 지웠다(저장·제보 연결 없음). 다시 쓰려면 `/admin/sources` 에서 켠다(켜면 다음 수집 때 다시 들어온다).
+- `/api/news/insights`(AI 해설 채우기)는 504를 막으려고 시간 예산(30초)·동시 3묶음으로 처리하고, 남은 건 클라이언트가 이어서 호출하게 되어 있다(버튼을 숨긴 지금은 호출할 곳이 없다).

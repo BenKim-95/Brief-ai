@@ -12,7 +12,10 @@ test.beforeEach(async ({ page }) => {
 test.describe("뉴스 카드", () => {
   test("카드가 최신순으로 6개씩 보이고 2페이지로 넘어간다", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText(`지금까지 ${NEWS_TOTAL}개`);
+    // 날짜·"오늘 새 소식 N개, 지금까지 N개" 문구는 보이지 않는다.
+    await expect(page.getByText(/지금까지 \d+개|오늘 새 소식/)).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("브리프 뉴스");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveClass(/sr-only/); // 화면에는 보이지 않는 제목
     await expect(page.getByRole("heading", { level: 3 })).toHaveCount(6);
     await expect(page.getByRole("heading", { level: 3 }).first()).toHaveText(`${E2E_PREFIX} 모델 소식 1`);
 

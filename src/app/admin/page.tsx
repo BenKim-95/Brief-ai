@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FetchButton as FetchHousingButton } from "@/app/housing/fetch-button";
 
 const TOOLS = [
   { href: "/admin/errors", title: "오류 코드·이슈 현황", desc: "배포 후 웹·앱·서버에서 난 오류와 서버 상태를 확인해요." },
@@ -14,6 +15,13 @@ const TOOLS = [
 export default function AdminIndex() {
   return (
     <section>
+      <h2 className="mb-1 text-lg font-bold">데이터 가져오기</h2>
+      <p className="text-sm text-muted-foreground">매일 아침 자동으로도 가져와요. 지금 바로 가져오고 싶을 때 쓰세요.</p>
+      {/* 뉴스 가져오기·AI 해설 채우기 버튼(FetchNewsButton)은 화면에서 숨겼다. 다시 쓰려면 여기에 <FetchNewsButton /> 을 넣는다. */}
+      <div className="mt-3 mb-8">
+        <FetchHousingButton />
+      </div>
+
       <h2 className="mb-3 text-lg font-bold">관리 메뉴</h2>
       <ul className="grid gap-3">
         {TOOLS.map((t) => (
