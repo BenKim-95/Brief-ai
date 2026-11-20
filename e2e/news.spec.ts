@@ -46,6 +46,13 @@ test.describe("뉴스 카드", () => {
     await page.getByRole("navigation", { name: "카테고리" }).getByRole("link", { name: `${E2E_PREFIX} 모델` }).click();
     await expect(page.getByRole("heading", { level: 3 })).toHaveCount(NEWS_MODEL_COUNT);
   });
+
+  test("기사가 하나도 없는 카테고리는 탭에서 숨긴다", async ({ page }) => {
+    await page.goto("/");
+    const tabs = page.getByRole("navigation", { name: "카테고리" });
+    await expect(tabs.getByRole("link", { name: `${E2E_PREFIX} 모델` })).toBeVisible();
+    await expect(tabs.getByRole("link", { name: `${E2E_PREFIX} 빈 카테고리` })).toHaveCount(0);
+  });
 });
 
 test.describe("저장", () => {

@@ -1,4 +1,4 @@
-import { asc, desc, eq, sql } from "drizzle-orm";
+import { asc, desc, eq, exists, sql } from "drizzle-orm";
 import type { getDb } from "@/db";
 import { articles, categories, sources } from "@/db/schema";
 
@@ -58,10 +58,20 @@ export async function listArticles(
     .offset((page - 1) * ARTICLES_PER_PAGE);
 }
 
-export async function listCategories(db: Db) {
+/**
+ * 카테고리 목록(정렬 순서대로).
+ * `onlyWithArticles`: 기사가 한 건도 없는 카테고리(예: 아직 기사가 안 들어오는 "메인"·"추천")는 뺀다.
+ * 기사가 들어오면 저절로 다시 나타난다.
+ */
+export async function listCategories(db: Db, opts: { onlyWithArticles?: boolean } = {}) {
   return db
     .select({ id: categories.id, name: categories.name })
     .from(categories)
+    .where(
+      opts.onlyWithArticles
+        ? exists(db.select({ one: sql`1` }).from(articles).where(eq(articles.categoryId, categories.id)))
+        : undefined,
+    )
     .orderBy(asc(categories.sortOrder));
 }
 
