@@ -72,6 +72,8 @@ export default async function globalSetup() {
     .values([
       { name: `${E2E_PREFIX} 모델`, description: "테스트", sortOrder: 1 },
       { name: `${E2E_PREFIX} 정책`, description: "테스트", sortOrder: 2 },
+      // 기사가 하나도 없는 카테고리: 홈 카테고리 탭에서 숨겨져야 한다.
+      { name: `${E2E_PREFIX} 빈 카테고리`, description: "테스트", sortOrder: 3 },
     ])
     .returning();
 

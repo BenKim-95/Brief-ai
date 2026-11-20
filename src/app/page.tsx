@@ -116,7 +116,7 @@ async function News({ searchParams }: { searchParams: Promise<Search> }) {
   const page = Math.min(requested, totalPages);
   const [items, cats] = await Promise.all([
     listArticles(db, { categoryId, page }),
-    listCategories(db),
+    listCategories(db, { onlyWithArticles: true }),
   ]);
   const savedIds = await savedIdSet(
     db,
