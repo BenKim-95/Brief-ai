@@ -1,6 +1,8 @@
 import type { housingNotices } from "@/db/schema";
 import { noticeStatus, STATUS_LABEL, type NoticeStatus } from "@/lib/housing/status";
+import Link from "next/link";
 import { CardImage } from "./card-image";
+import { ShareButton } from "./share-button";
 import { SaveButton } from "./save-button";
 
 export type HousingNotice = typeof housingNotices.$inferSelect;
@@ -103,6 +105,10 @@ export function HousingNoticeCard({
               캘린더에 추가
             </a>
           )}
+          <Link href={`/housing/${n.id}`} className="inline-flex min-h-11 items-center rounded-md border px-3 text-sm">
+            청약 사진 보기
+          </Link>
+          <ShareButton path={`/housing/${n.id}`} title={n.name} text={`${n.name} 청약 정보`} />
           <SaveButton
             articleId={n.id}
             initialSaved={saved}

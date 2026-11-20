@@ -208,6 +208,14 @@ export const housingNotices = pgTable("housing_notices", {
   detailUrl: text("detail_url"),
   /** 네이버 이미지 검색 썸네일 주소(https). 파일은 저장하지 않는다. */
   imageUrl: text("image_url"),
+  /**
+   * 조감도·평면도 등 사진 모음(네이버 이미지 검색 결과, 주소만 저장). null = 아직 안 찾아봤어요.
+   * 모양은 src/lib/housing/photos.ts 의 HousingPhotos 와 같다.
+   */
+  photos: jsonb("photos").$type<{
+    checkedAt: string;
+    items: { kind: "조감도" | "평면도" | "배치도" | "모델하우스"; thumb: string; link: string; title: string }[];
+  } | null>(),
   raw: jsonb("raw").notNull(),
   fetchedAt: timestamp("fetched_at", { withTimezone: true })
     .notNull()

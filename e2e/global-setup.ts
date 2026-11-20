@@ -124,6 +124,18 @@ export default async function globalSetup() {
       receiptEnd: day(4 + i),
       winnerOn: day(10),
       detailUrl: "https://example.invalid/applyhome",
+      // 공고 A에는 사진 모음이 이미 있고(조감도·평면도), B는 아직 안 찾아봤다(null → 검색 키가 없으면 안내).
+      photos:
+        k === "A"
+          ? {
+              checkedAt: new Date().toISOString(),
+              items: [
+                { kind: "조감도" as const, thumb: E2E_IMAGE_OK, link: "https://example.invalid/full-a.jpg", title: "테스트 단지 조감도" },
+                { kind: "평면도" as const, thumb: E2E_IMAGE_OK, link: "https://example.invalid/plan-a.jpg", title: "테스트 단지 84A 평면도" },
+                { kind: "평면도" as const, thumb: E2E_IMAGE_BROKEN, link: "https://example.invalid/plan-b.jpg", title: "깨진 사진" },
+              ],
+            }
+          : null,
       raw: {},
     })),
   );

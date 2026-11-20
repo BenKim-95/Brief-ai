@@ -78,6 +78,13 @@
       "when": 1795181702286,
       "tag": "0010_chubby_thena",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795182009558,
+      "tag": "0011_curious_weapon_omega",
+      "breakpoints": true
     }
   ]
 }
