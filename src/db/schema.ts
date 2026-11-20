@@ -127,6 +127,54 @@ export const articleViews = pgTable(
   (t) => [primaryKey({ columns: [t.articleId, t.visitorId, t.day] }), index("article_views_day_idx").on(t.day)],
 );
 
+// --- 커뮤니티 (사용자가 직접 글을 쓰고 댓글을 주고받는 곳). 글쓴이는 방문자 번호(`v:<uuid>`)로 구분한다. ---
+
+export const communityPosts = pgTable(
+  "community_posts",
+  {
+    id: serial("id").primaryKey(),
+    visitorId: text("visitor_id").notNull(),
+    /** 쓸 때의 닉네임. 나중에 닉네임을 바꿔도 이미 쓴 글의 이름은 그대로다. */
+    authorName: text("author_name").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    /** 특정 뉴스 기사에 대한 이야기라면 그 기사(기사가 지워지면 연결만 사라진다). */
+    articleId: integer("article_id").references(() => articles.id, { onDelete: "set null" }),
+    /** 신고가 쌓이면 true: 목록·상세에서 가려지고 관리자만 되살리거나 지울 수 있다. */
+    hidden: boolean("hidden").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("community_posts_created_idx").on(t.createdAt), index("community_posts_visitor_idx").on(t.visitorId)],
+);
+
+export const communityComments = pgTable(
+  "community_comments",
+  {
+    id: serial("id").primaryKey(),
+    postId: integer("post_id")
+      .notNull()
+      .references(() => communityPosts.id, { onDelete: "cascade" }),
+    visitorId: text("visitor_id").notNull(),
+    authorName: text("author_name").notNull(),
+    body: text("body").notNull(),
+    hidden: boolean("hidden").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("community_comments_post_idx").on(t.postId), index("community_comments_visitor_idx").on(t.visitorId)],
+);
+
+/** 신고. 같은 방문자가 같은 글·댓글을 여러 번 신고해도 1건으로 센다. */
+export const communityReports = pgTable(
+  "community_reports",
+  {
+    kind: text("kind").notNull(), // "post" | "comment"
+    targetId: integer("target_id").notNull(),
+    visitorId: text("visitor_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.kind, t.targetId, t.visitorId] })],
+);
+
 export const pushSubscriptions = pgTable("push_subscriptions", {
   id: serial("id").primaryKey(),
   endpoint: text("endpoint").notNull().unique(),
