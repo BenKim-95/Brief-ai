@@ -51,24 +51,9 @@ test.describe("읽을 시간 알림 (.ics)", () => {
     expect((await request.get(`/api/articles/abc/ics?when=evening`)).status()).toBe(400);
   });
 
-  test("카드에서 시간을 고르면 .ics 파일이 내려받아진다", async ({ page }) => {
+  test("뉴스 카드에는 '읽을 시간 알림' 버튼이 없다(API는 그대로 있다)", async ({ page }) => {
     await page.goto("/");
-    const card = firstCard(page);
-    await card.getByRole("button", { name: "읽을 시간 알림" }).click();
-    const [download] = await Promise.all([
-      page.waitForEvent("download"),
-      card.getByRole("button", { name: "오늘 저녁 8시" }).click(),
-    ]);
-    expect(download.suggestedFilename()).toMatch(/^article-\d+\.ics$/);
-    await expect(card.getByRole("status")).toContainText("내려받았어요");
-  });
-
-  test("카드에서 지난 날짜를 고르면 이유가 화면에 나온다", async ({ page }) => {
-    await page.goto("/");
-    const card = firstCard(page);
-    await card.getByRole("button", { name: "읽을 시간 알림" }).click();
-    await card.getByLabel("읽을 날짜").fill("2020-01-01");
-    await card.getByRole("button", { name: "그날 오전 9시" }).click();
-    await expect(card.getByRole("status")).toContainText("지난 날은 고를 수 없어요");
+    await expect(firstCard(page)).toBeVisible();
+    await expect(page.getByRole("button", { name: "읽을 시간 알림" })).toHaveCount(0);
   });
 });

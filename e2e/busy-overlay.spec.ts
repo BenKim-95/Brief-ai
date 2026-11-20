@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 
 test("버튼을 누르고 기다리는 동안 화면 가운데에 로딩 안내가 보인다", async ({ page }) => {
   // 서버 응답이 느린 상황을 만든다.
-  await page.route("**/api/articles/*/ics*", async (route) => {
+  await page.route("**/api/saved/*", async (route) => {
     await new Promise((r) => setTimeout(r, 1500));
     await route.continue();
   });
@@ -16,12 +16,11 @@ test("버튼을 누르고 기다리는 동안 화면 가운데에 로딩 안내�
   const card = page
     .getByRole("listitem")
     .filter({ has: page.getByRole("heading", { name: `${E2E_PREFIX} 모델 소식 1` }) });
-  await card.getByRole("button", { name: "읽을 시간 알림" }).click();
-  await card.getByRole("button", { name: /오늘 저녁|저녁/ }).first().click();
+  await card.getByRole("button", { name: "☆ 저장" }).click();
 
   const overlay = page.locator("[data-busy-overlay]");
   await expect(overlay).toBeVisible();
-  await expect(overlay.getByRole("status")).toContainText("캘린더 파일을 만드는 중이에요");
+  await expect(overlay.getByRole("status")).toContainText("처리 중이에요");
 
   // 상자가 화면 가운데에 있다
   const box = await overlay.getByRole("status").boundingBox();
