@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
@@ -9,7 +10,29 @@ import { savedIdSet } from "@/lib/news/saved";
 import { readVisitorId } from "@/lib/visitor";
 import { idParamSchema } from "@/lib/schemas";
 
-export const metadata = { title: "기사 · 브리프" };
+/** 공유한 링크를 메신저가 미리보기로 펼칠 수 있게, 제목·요약·사진을 메타 정보로 내보낸다. */
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const fallback: Metadata = { title: "기사 · 브리프" };
+  const parsed = idParamSchema.safeParse((await params).id);
+  if (!parsed.success || !hasDatabaseUrl()) return fallback;
+  await connection();
+  const article = await getArticleCard(getDb(), parsed.data);
+  if (!article) return fallback;
+  const description = article.summaryKo.replace(/\s+/g, " ").trim().slice(0, 160);
+  return {
+    title: `${article.titleKo} · 브리프`,
+    description,
+    openGraph: {
+      type: "article",
+      title: article.titleKo,
+      description,
+      siteName: "브리프",
+      locale: "ko_KR",
+      ...(article.imageUrl ? { images: [article.imageUrl] } : {}),
+    },
+    twitter: { card: article.imageUrl ? "summary_large_image" : "summary", title: article.titleKo, description },
+  };
+}
 
 async function ArticleView({ params }: { params: Promise<{ id: string }> }) {
   const parsed = idParamSchema.safeParse((await params).id);

@@ -14,6 +14,8 @@ const plex = IBM_Plex_Sans_KR({
 });
 
 export const metadata: Metadata = {
+  // 공유 미리보기의 사진·주소를 절대 주소로 만들 때 쓴다(SITE_URL이 없으면 요청 주소를 따른다).
+  metadataBase: process.env.SITE_URL ? new URL(process.env.SITE_URL) : undefined,
   title: "브리프",
   description: "검증하고, 골라주고, 챙겨주는 정보 비서",
 };
