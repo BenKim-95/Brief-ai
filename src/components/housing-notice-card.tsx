@@ -24,11 +24,14 @@ export function HousingNoticeCard({
   categoryName,
   today,
   saved,
+  removeOnUnsave = false,
 }: {
   notice: HousingNotice;
   categoryName: string;
   today: string;
   saved: boolean;
+  /** 저장함용: 저장을 풀면 이 카드를 바로 숨긴다. */
+  removeOnUnsave?: boolean;
 }) {
   const status = noticeStatus(n.receiptStart, n.receiptEnd, today);
   const receipt =
@@ -36,7 +39,7 @@ export function HousingNoticeCard({
       ? `${formatDate(n.receiptStart)} ~ ${formatDate(n.receiptEnd)}`
       : formatDate(n.receiptStart ?? n.receiptEnd);
   return (
-    <li>
+    <li className={removeOnUnsave ? "has-[[data-unsaved]]:hidden" : undefined}>
       <article className="rounded-lg border bg-card p-4 text-card-foreground">
         {n.imageUrl && <CardImage src={n.imageUrl} inset={4} />}
         <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
@@ -100,7 +103,12 @@ export function HousingNoticeCard({
               캘린더에 추가
             </a>
           )}
-          <SaveButton articleId={n.id} initialSaved={saved} apiBase="/api/housing/saved" />
+          <SaveButton
+            articleId={n.id}
+            initialSaved={saved}
+            apiBase="/api/housing/saved"
+            removeOnUnsave={removeOnUnsave}
+          />
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
           정확한 자격·일정은 청약홈 공고문을 확인해 주세요.

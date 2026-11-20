@@ -192,3 +192,36 @@ body {
   word-break: keep-all;
   line-height: 1.6;
 }
+
+/* 화면 이동 로딩바 (src/components/navigation-progress.tsx): 처음엔 빠르게, 갈수록 천천히 차오른다. */
+@keyframes nav-progress-run {
+  from {
+    width: 0;
+  }
+  to {
+    width: 92%;
+  }
+}
+@keyframes nav-progress-done {
+  0%,
+  35% {
+    width: 100%;
+    opacity: 1;
+  }
+  100% {
+    width: 100%;
+    opacity: 0;
+  }
+}
+.nav-progress-run {
+  animation: nav-progress-run 12s cubic-bezier(0.1, 0.7, 0.1, 1) forwards;
+}
+.nav-progress-done {
+  animation: nav-progress-done 0.45s ease-out forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress-run {
+    animation: none;
+    width: 60%;
+  }
+}

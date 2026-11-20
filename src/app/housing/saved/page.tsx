@@ -46,6 +46,7 @@ async function SavedNotices() {
             categoryName={(n.categoryId ? categoryName.get(n.categoryId) : undefined) ?? "미분류"}
             today={today}
             saved
+            removeOnUnsave
           />
         ))}
       </ul>

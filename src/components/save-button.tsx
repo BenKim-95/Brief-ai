@@ -12,12 +12,18 @@ export function SaveButton({
   articleId,
   initialSaved,
   apiBase = "/api/saved",
+  removeOnUnsave = false,
 }: {
   /** 저장할 항목의 id (기사 id 또는 청약 공고 id) */
   articleId: number;
   initialSaved: boolean;
   /** 저장 API 경로. 청약 공고는 "/api/housing/saved" */
   apiBase?: string;
+  /**
+   * 저장함 화면용. 저장을 풀면 서버 응답을 기다리지 않고 카드를 바로 숨긴다.
+   * 카드(<li>)에 `has-[[data-unsaved]]:hidden` 클래스가 있어야 한다. 실패하면 카드가 다시 나타난다.
+   */
+  removeOnUnsave?: boolean;
 }) {
   const router = useRouter();
   const [saved, setSaved] = useOptimistic(initialSaved);
@@ -27,14 +33,15 @@ export function SaveButton({
   function toggle() {
     const next = !saved;
     setError("");
+    let token = "";
+    try {
+      token = localStorage.getItem(ADMIN_TOKEN_KEY) ?? sessionStorage.getItem(ADMIN_TOKEN_KEY) ?? "";
+    } catch {}
+    // 이 브라우저에 관리 토큰이 없으면 서버가 어차피 거절하므로, 안내 없이 아무 일도 하지 않는다.
+    if (!token) return;
     startTransition(async () => {
       setSaved(next);
       try {
-        let token = "";
-        try {
-          token = localStorage.getItem(ADMIN_TOKEN_KEY) ?? sessionStorage.getItem(ADMIN_TOKEN_KEY) ?? "";
-        } catch {}
-        if (!token) throw new Error("관리 토큰이 필요해요. 관리 화면(/admin/sources)에서 먼저 입력해 주세요.");
         const res = await fetch(`${apiBase}/${articleId}`, {
           method: next ? "PUT" : "DELETE",
           headers: { "x-admin-token": token },
@@ -64,6 +71,7 @@ export function SaveButton({
       >
         {saved ? "★ 저장됨" : "☆ 저장"}
       </button>
+      {removeOnUnsave && !saved && <span hidden data-unsaved />}
       {error && (
         <p role="alert" className="mt-1 text-xs text-no">
           ⚠ {error}

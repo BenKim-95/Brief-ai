@@ -33,7 +33,7 @@ async function SavedList() {
       <p className="mb-3 text-sm text-sub">{items.length}개 저장했어요.</p>
       <ul className="flex flex-col gap-3">
         {items.map((a) => (
-          <ArticleCardItem key={a.id} article={a} saved />
+          <ArticleCardItem key={a.id} article={a} saved removeOnUnsave />
         ))}
       </ul>
     </>

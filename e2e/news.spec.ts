@@ -71,17 +71,63 @@ test.describe("저장", () => {
     await expect(page.getByText("저장한 소식이 없어요")).toBeVisible();
   });
 
-  test("토큰이 없으면 저장되지 않고 이유를 알려준다", async ({ page }) => {
+  test("저장함에서 저장을 풀면 서버 응답을 기다리지 않고 카드가 바로 사라진다", async ({ page }) => {
+    const title = `${E2E_PREFIX} 모델 소식 1`;
+    await page.goto("/");
+    const saved = page.waitForResponse((r) => /\/api\/saved\/\d+$/.test(r.url()) && r.request().method() === "PUT");
+    await card(page, title).getByRole("button", { name: "☆ 저장" }).click();
+    expect((await saved).status()).toBe(200);
+
+    await page.goto("/saved");
+    await expect(card(page, title)).toBeVisible();
+    // 해제 요청을 일부러 늦춰도 카드는 곧바로 사라져야 한다.
+    await page.route(/\/api\/saved\/\d+$/, async (route) => {
+      if (route.request().method() === "DELETE") await new Promise((r) => setTimeout(r, 2000));
+      await route.continue();
+    });
+    const deleted = page.waitForResponse((r) => /\/api\/saved\/\d+$/.test(r.url()) && r.request().method() === "DELETE");
+    await card(page, title).getByRole("button", { name: "★ 저장됨" }).click();
+    await expect(card(page, title)).toBeHidden({ timeout: 1000 });
+    // 다른 테스트에 저장 상태가 남지 않도록 서버 해제가 끝날 때까지 기다린다.
+    expect((await deleted).status()).toBe(200);
+    await expect(page.getByText("저장한 소식이 없어요")).toBeVisible();
+  });
+
+  test("토큰이 없으면 저장되지 않고, 안내 문구도 띄우지 않는다", async ({ page }) => {
     await page.addInitScript(() => {
       try {
         localStorage.removeItem("admin-token");
       } catch {}
     });
+    let sawApiCall = false;
+    page.on("request", (r) => {
+      if (/\/api\/saved\/\d+$/.test(r.url())) sawApiCall = true;
+    });
     await page.goto("/");
     const first = page.getByRole("listitem").filter({ has: page.getByRole("heading", { level: 3 }) }).first();
     await first.getByRole("button", { name: "☆ 저장" }).click();
-    await expect(first.getByRole("alert")).toContainText("토큰");
     await expect(first.getByRole("button", { name: "☆ 저장" })).toBeVisible();
+    await expect(first.getByRole("alert")).toHaveCount(0);
+    await expect(page.getByText("관리 토큰이 필요해요")).toHaveCount(0);
+    expect(sawApiCall).toBe(false);
+  });
+
+  test("다른 화면으로 옮기는 동안 상단 로딩바가 보였다가 사라진다", async ({ page }) => {
+    // 이동이 빠르면 로딩바가 보이는 시간도 짧아서, 나타난 적이 있는지를 따로 기록해 둔다.
+    await page.addInitScript(() => {
+      const w = window as unknown as { __sawNavBar?: boolean };
+      new MutationObserver(() => {
+        if (document.querySelector("[data-nav-progress]")) w.__sawNavBar = true;
+      }).observe(document, { childList: true, subtree: true });
+    });
+    await page.goto("/");
+    await page.getByRole("link", { name: "저장함" }).click();
+    await expect(page).toHaveURL(/\/saved$/);
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { __sawNavBar?: boolean }).__sawNavBar === true))
+      .toBe(true);
+    // 이동이 끝나면 로딩바는 사라진다.
+    await expect(page.locator("[data-nav-progress]")).toHaveCount(0, { timeout: 3000 });
   });
 
   test("API는 토큰 없이 호출하면 401, 있는 기사만 저장된다", async ({ request }) => {
