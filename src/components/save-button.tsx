@@ -2,11 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useOptimistic, useState, useTransition } from "react";
-import { ADMIN_TOKEN_KEY } from "@/app/admin/admin-api";
 import { useBusy } from "./busy-overlay";
 
 /**
- * 저장/해제 토글. 관리 API와 같은 토큰을 쓴다(로그인 도입 전까지).
+ * 저장/해제 토글. 로그인 없이 이 브라우저(방문자 쿠키)의 저장함에 담긴다.
  * 눌렀을 때 바로 바뀌어 보이고(optimistic), 실패하면 원래대로 돌아가며 이유를 보여준다.
  */
 export function SaveButton({
@@ -35,20 +34,12 @@ export function SaveButton({
   function toggle() {
     const next = !saved;
     setError("");
-    let token = "";
-    try {
-      token = localStorage.getItem(ADMIN_TOKEN_KEY) ?? sessionStorage.getItem(ADMIN_TOKEN_KEY) ?? "";
-    } catch {}
-    // 이 브라우저에 관리 토큰이 없으면 서버가 어차피 거절하므로, 안내 없이 아무 일도 하지 않는다.
-    if (!token) return;
     startTransition(async () => {
       setSaved(next);
       try {
         const res = await fetch(`${apiBase}/${articleId}`, {
           method: next ? "PUT" : "DELETE",
-          headers: { "x-admin-token": token },
         });
-        if (res.status === 401) throw new Error("토큰이 맞지 않아요. 다시 입력해 주세요.");
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error ?? `저장하지 못했어요 (${res.status})`);

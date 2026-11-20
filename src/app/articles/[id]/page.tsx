@@ -6,6 +6,7 @@ import { ArticleCardItem } from "@/components/article-card";
 import { getDb, hasDatabaseUrl } from "@/db";
 import { getArticleCard } from "@/lib/news/queries";
 import { savedIdSet } from "@/lib/news/saved";
+import { readVisitorId } from "@/lib/visitor";
 import { idParamSchema } from "@/lib/schemas";
 
 export const metadata = { title: "기사 · 브리프" };
@@ -24,7 +25,7 @@ async function ArticleView({ params }: { params: Promise<{ id: string }> }) {
   const db = getDb();
   const article = await getArticleCard(db, parsed.data);
   if (!article) notFound();
-  const saved = (await savedIdSet(db, [article.id])).has(article.id);
+  const saved = (await savedIdSet(db, [article.id], await readVisitorId())).has(article.id);
   return (
     <ul>
       <ArticleCardItem article={article} saved={saved} />

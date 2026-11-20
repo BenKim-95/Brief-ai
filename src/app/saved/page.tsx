@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { ArticleCardItem } from "@/components/article-card";
 import { getDb, hasDatabaseUrl } from "@/db";
 import { listSaved } from "@/lib/news/saved";
+import { readVisitorId } from "@/lib/visitor";
 
 export const metadata = { title: "저장함 · 브리프" };
 
@@ -16,7 +17,7 @@ async function SavedList() {
     );
   }
   await connection();
-  const items = await listSaved(getDb());
+  const items = await listSaved(getDb(), await readVisitorId());
 
   if (items.length === 0) {
     return (

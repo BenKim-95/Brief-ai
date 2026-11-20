@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { E2E_PREFIX, HOUSING_TOTAL } from "./global-setup";
-import { ADMIN_TOKEN, signInAsAdmin } from "./helpers";
+import { signInAsAdmin } from "./helpers";
 
 const title = `${E2E_PREFIX} 테스트 공고 A`;
 
@@ -57,9 +57,8 @@ test.describe("청약 저장", () => {
     await expect(page.getByText("저장한 공고가 없어요")).toBeVisible();
   });
 
-  test("API는 토큰 없이 호출하면 401, 없는 공고는 404", async ({ request }) => {
-    expect((await request.put("/api/housing/saved/1")).status()).toBe(401);
-    const missing = await request.put("/api/housing/saved/99999999", { headers: { "x-admin-token": ADMIN_TOKEN } });
+  test("API: 없는 공고는 404", async ({ request }) => {
+    const missing = await request.put("/api/housing/saved/99999999");
     expect(missing.status()).toBe(404);
   });
 });
