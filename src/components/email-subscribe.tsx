@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useBusy } from "./busy-overlay";
 import { ADMIN_TOKEN_KEY } from "@/app/admin/admin-api";
 
 type Item = { id: number; email: string };
@@ -33,6 +34,7 @@ export function EmailSubscribe() {
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  useBusy(busy, "처리 중이에요…");
 
   const load = useCallback(async () => {
     try {

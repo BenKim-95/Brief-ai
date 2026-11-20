@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useOptimistic, useState, useTransition } from "react";
 import { ADMIN_TOKEN_KEY } from "@/app/admin/admin-api";
+import { useBusy } from "./busy-overlay";
 
 /**
  * 저장/해제 토글. 관리 API와 같은 토큰을 쓴다(로그인 도입 전까지).
@@ -29,6 +30,7 @@ export function SaveButton({
   const [saved, setSaved] = useOptimistic(initialSaved);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
+  useBusy(pending, "처리 중이에요…");
 
   function toggle() {
     const next = !saved;

@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useBusy } from "@/components/busy-overlay";
 
 export const ADMIN_TOKEN_KEY = "admin-token";
 /** 토큰을 입력하거나 지울 때 같은 화면의 다른 부분(관리자 전용 버튼 등)에 알리는 이벤트 */
@@ -21,7 +22,7 @@ type Api = {
   /** Fetch an admin API; throws Error(message) on non-2xx. */
   call: <T = unknown>(
     path: string,
-    init?: { method?: string; body?: unknown },
+    init?: { method?: string; body?: unknown; busyLabel?: string },
   ) => Promise<T>;
 };
 
@@ -30,6 +31,9 @@ const Ctx = createContext<Api | null>(null);
 export function AdminApiProvider({ children }: { children: ReactNode }) {
   const [token, setTokenState] = useState("");
   const [ready, setReady] = useState(false);
+  // 요청이 진행 중인 동안 화면 가운데에 로딩 안내를 보여 준다.
+  const [inFlight, setInFlight] = useState<string[]>([]);
+  useBusy(inFlight.length > 0, inFlight.at(-1));
 
   useEffect(() => {
     try {
@@ -52,8 +56,8 @@ export function AdminApiProvider({ children }: { children: ReactNode }) {
     window.dispatchEvent(new Event(ADMIN_TOKEN_EVENT));
   }, []);
 
-  const call = useCallback<Api["call"]>(
-    async (path, init) => {
+  const request = useCallback(
+    async (path: string, init?: { method?: string; body?: unknown }) => {
       const res = await fetch(path, {
         method: init?.method ?? "GET",
         headers: {
@@ -78,6 +82,22 @@ export function AdminApiProvider({ children }: { children: ReactNode }) {
       return data;
     },
     [token, setToken],
+  );
+
+  const call = useCallback<Api["call"]>(
+    async (path, init) => {
+      const label = init?.busyLabel ?? "처리 중이에요…";
+      setInFlight((l) => [...l, label]);
+      try {
+        return await request(path, init);
+      } finally {
+        setInFlight((l) => {
+          const i = l.indexOf(label);
+          return i < 0 ? l : [...l.slice(0, i), ...l.slice(i + 1)];
+        });
+      }
+    },
+    [request],
   );
 
   const value = useMemo(() => ({ token, setToken, call }), [token, setToken, call]);

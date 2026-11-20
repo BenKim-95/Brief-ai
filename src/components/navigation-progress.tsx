@@ -2,6 +2,7 @@
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
+import { useBusy } from "./busy-overlay";
 
 /** 화면이 안 바뀐 채 이 시간이 지나면 로딩바를 그냥 걷는다(막힌 이동 등). */
 const GIVE_UP_MS = 12_000;
@@ -20,6 +21,8 @@ function ProgressBar() {
 
   const running = startedAt !== null && startedAt === routeKey;
   const finishing = startedAt !== null && startedAt !== routeKey;
+  // 화면을 옮기는 동안 가운데에도 로딩 안내를 보여 준다.
+  useBusy(running, "화면을 불러오는 중이에요…");
 
   // 사이트 안 링크를 누르거나 뒤로/앞으로 가기를 하면 시작한다.
   useEffect(() => {
