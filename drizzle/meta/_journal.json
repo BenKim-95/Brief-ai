@@ -85,6 +85,13 @@
       "when": 1795182009558,
       "tag": "0011_curious_weapon_omega",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1795182413864,
+      "tag": "0012_zippy_zombie",
+      "breakpoints": true
     }
   ]
 }

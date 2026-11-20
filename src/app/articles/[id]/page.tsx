@@ -54,6 +54,14 @@ async function ArticleView({ params }: { params: Promise<{ id: string }> }) {
     <ul>
       <ViewPing articleId={article.id} />
       <ArticleCardItem article={article} saved={saved} />
+      <li className="mt-3 list-none">
+        <Link
+          href={`/community/new?article=${article.id}`}
+          className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm text-ink"
+        >
+          이 소식으로 이야기 나누기
+        </Link>
+      </li>
     </ul>
   );
 }
