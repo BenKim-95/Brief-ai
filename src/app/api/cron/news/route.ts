@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { getDb } from "@/db";
 import { requireCron } from "@/lib/cron-auth";
+import { pruneErrors } from "@/lib/errors/store";
 import { pruneViews } from "@/lib/news/five-minute";
 import { syncNews } from "@/lib/news/sync";
 
@@ -17,5 +18,6 @@ export async function GET(request: Request) {
   const result = await syncNews(db, new Anthropic());
   // 5분 이슈용 조회 기록은 30일만 보관한다. 정리에 실패해도 수집 결과는 그대로 돌려준다.
   const prunedViews = await pruneViews(db).catch(() => null);
-  return Response.json({ ...result, prunedViews });
+  const prunedErrors = await pruneErrors(db).catch(() => null);
+  return Response.json({ ...result, prunedViews, prunedErrors });
 }

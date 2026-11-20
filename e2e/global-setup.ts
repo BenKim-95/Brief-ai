@@ -59,6 +59,7 @@ export default async function globalSetup() {
   await db.delete(s.savedArticles);
   await db.delete(s.visitorProfiles);
   await db.delete(s.articleViews);
+  await db.delete(s.errorEvents);
   await db.delete(s.communityReports);
   await db.delete(s.communityComments);
   await db.delete(s.communityPosts);

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_KR } from "next/font/google";
 import { BusyOverlay } from "@/components/busy-overlay";
+import { ErrorReporter } from "@/components/error-reporter";
 import { NativeLinkHandler } from "@/components/native-link-handler";
 import { NavigationProgress } from "@/components/navigation-progress";
 import { PwaClient } from "@/components/pwa-client";
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <NavigationProgress />
         <BusyOverlay />
+        <ErrorReporter />
         {children}
         <PwaClient />
         <NativeLinkHandler />
