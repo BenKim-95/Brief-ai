@@ -19,6 +19,13 @@ try {
   process.loadEnvFile(".env.local");
 } catch {}
 
+// 운영 DB에 샘플 데이터가 섞여 들어간 적이 있어서, 명시적으로 허락해야만 실행된다.
+// 개발용 DB에서만: ALLOW_SAMPLE_SEED=1 npx tsx scripts/seed-sample.ts
+if (process.env.ALLOW_SAMPLE_SEED !== "1") {
+  console.error("샘플 데이터를 넣지 않았어요. 개발용 DB가 맞다면 ALLOW_SAMPLE_SEED=1 을 붙여 다시 실행하세요.");
+  process.exit(1);
+}
+
 const db = getDb();
 const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000);
 
