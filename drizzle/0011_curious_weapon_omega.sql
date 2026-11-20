@@ -1,0 +1,1 @@
+ALTER TABLE "housing_notices" ADD COLUMN "photos" jsonb;

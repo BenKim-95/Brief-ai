@@ -62,3 +62,46 @@ test.describe("청약 저장", () => {
     expect(missing.status()).toBe(404);
   });
 });
+
+test.describe("청약 사진 모아보기", () => {
+  const noticeCard = (page: import("@playwright/test").Page, name: string) =>
+    page.getByRole("article").filter({ has: page.getByRole("heading", { name }) });
+
+  test("카드의 '청약 사진 보기'로 조감도·평면도 모음 화면이 열리고, 열리지 않는 사진은 숨긴다", async ({ page }) => {
+    await page.goto("/housing");
+    await noticeCard(page, title).getByRole("link", { name: "청약 사진 보기" }).click();
+    await expect(page).toHaveURL(/\/housing\/\d+$/);
+    await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "조감도" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "평면도" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "배치도" })).toHaveCount(0);
+    // 사진 3장 중 주소가 깨진 1장은 칸째 사라진다.
+    await expect(page.locator("main li img")).toHaveCount(3);
+    await expect.poll(async () => page.locator("main li img").count()).toBe(2);
+    // 원본은 새 창에서, 출처와 안내 문구가 있다.
+    const link = page.getByRole("link", { name: /84A 평면도 원본 보기/ });
+    await expect(link).toHaveAttribute("target", "_blank");
+    await expect(link).toHaveAttribute("rel", /noopener/);
+    await expect(link).toContainText("example.invalid");
+    await expect(page.getByText("저작권은 각 출처에 있고")).toBeVisible();
+    await expect(page.getByRole("link", { name: /청약홈 공고 보기/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "공유" })).toBeVisible();
+  });
+
+  test("아직 사진을 찾지 않은 공고는, 검색 키가 없으면 안내만 보여 준다", async ({ page }) => {
+    await page.goto("/housing");
+    await noticeCard(page, `${E2E_PREFIX} 테스트 공고 B`).getByRole("link", { name: "청약 사진 보기" }).click();
+    await expect(page.getByText("사진 검색이 아직 연결되지 않았어요")).toBeVisible();
+    await expect(page.locator("main li img")).toHaveCount(0);
+  });
+
+  test("없는 공고는 '찾을 수 없어요' 화면", async ({ page }) => {
+    await page.goto("/housing/99999999");
+    await expect(page.getByText("찾을 수 없어요")).toBeVisible();
+  });
+
+  test("청약 카드에도 공유 버튼이 있다", async ({ page }) => {
+    await page.goto("/housing");
+    await expect(noticeCard(page, title).getByRole("button", { name: "공유" })).toBeVisible();
+  });
+});

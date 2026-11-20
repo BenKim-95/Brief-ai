@@ -51,6 +51,9 @@ export default defineConfig({
       RESEND_API_KEY: "",
       RESEND_FROM: "",
       SITE_URL: "",
+      // 네이버 이미지 검색도 E2E에서는 부르지 않는다(키가 없으면 사진 모음 화면은 안내만 보여 준다).
+      NAVER_CLIENT_ID: "",
+      NAVER_CLIENT_SECRET: "",
     },
   },
 });
