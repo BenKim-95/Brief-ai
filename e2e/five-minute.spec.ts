@@ -7,6 +7,10 @@ import { E2E_PREFIX } from "./global-setup";
 const db = drizzle(neon(process.env.E2E_DATABASE_URL!), { schema: s });
 
 test.describe.configure({ mode: "serial" });
+// 다른 테스트가 기사를 열어 남긴 조회 기록이 순위에 섞이지 않게, 앞뒤로 비운다.
+test.beforeEach(async () => {
+  await db.delete(s.articleViews);
+});
 test.afterEach(async () => {
   await db.delete(s.articleViews);
 });

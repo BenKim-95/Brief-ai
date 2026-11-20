@@ -73,14 +73,10 @@ export function ShareButton({
       >
         {label}
       </button>
-      <p role="status" className="sr-only">
+      {/* 복사했다는 안내를 화면에 보이고, 스크린리더에도 읽히게 한다(role=status는 카드 안 다른 안내와 겹치지 않게 쓰지 않는다). */}
+      <p aria-live="polite" className={message ? "mt-1 text-xs text-ink" : "sr-only"}>
         {message}
       </p>
-      {message && (
-        <p aria-hidden className="mt-1 text-xs text-ink">
-          {message}
-        </p>
-      )}
       {manualUrl && (
         <input
           readOnly

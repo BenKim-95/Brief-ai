@@ -26,7 +26,7 @@ test("공유 창이 없는 브라우저에서는 링크를 복사하고 알려 �
   });
   await page.goto("/");
   await card(page).getByRole("button", { name: "공유" }).click();
-  await expect(card(page).getByText("링크를 복사했어요.").last()).toBeVisible();
+  await expect(card(page).getByText("링크를 복사했어요.")).toBeVisible();
   const copied = await page.evaluate(() => navigator.clipboard.readText());
   expect(copied).toMatch(/\/articles\/\d+$/);
 });

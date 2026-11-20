@@ -75,9 +75,8 @@ test.describe("청약 사진 모아보기", () => {
     await expect(page.getByRole("heading", { level: 2, name: "조감도" })).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "평면도" })).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "배치도" })).toHaveCount(0);
-    // 사진 3장 중 주소가 깨진 1장은 칸째 사라진다.
-    await expect(page.locator("main li img")).toHaveCount(3);
-    await expect.poll(async () => page.locator("main li img").count()).toBe(2);
+    // 사진 3장 중 주소가 깨진 1장은 칸째 사라진다(깨짐을 알아채는 시점이 달라 3장이 잠깐 보이는지는 확인하지 않는다).
+    await expect.poll(async () => page.locator("main li img:visible").count(), { timeout: 10_000 }).toBe(2);
     // 원본은 새 창에서, 출처와 안내 문구가 있다.
     const link = page.getByRole("link", { name: /84A 평면도 원본 보기/ });
     await expect(link).toHaveAttribute("target", "_blank");
