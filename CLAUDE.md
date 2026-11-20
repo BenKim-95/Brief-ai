@@ -107,7 +107,7 @@ Roadmap steps 1–7 and 9 are done in code (setup; source/category CRUD with adm
 - Branch `step6/news-ics`. `GET /api/articles/[id]/ics?when=evening|tomorrow|weekend` or `?date=YYYY-MM-DD` (public like the housing `.ics`; `Cache-Control: no-store`). Returns one timed event `[읽을 기사] <제목>` with the Korean summary + original link only (no article body), a 15-minute length and a `VALARM` at the start. 400 with a Korean reason for a bad/missing/past/over-1-year time, 404 for an unknown article.
 - Times are Korea time (UTC+9, no DST), computed in `src/lib/news/reminder.ts` (pure, tested): evening = today 20:00 (tomorrow if past), tomorrow = 08:00, weekend = next Saturday 09:00 (a Saturday rolls to the next one), `date` = that day 09:00 (today allowed, max 365 days ahead).
 - `src/lib/ics.ts` now supports all-day (`date`) and timed (`startAt`, UTC) events; only timed ones get an alarm. `PRODID` is `-//brief//KO`.
-- UI: `src/components/reminder-menu.tsx` ("읽을 시간 알림" button on every news card, home and `/saved`): fetches the file and downloads it, shows the server's reason inline on errors. Housing keeps its own `.ics` link.
+- UI: the "읽을 시간 알림" card button (`reminder-menu.tsx`) was **removed on 2026-11-20** at the user's request; the API above is still there. Housing keeps its own `.ics` link.
 - E2E: `e2e/reminder.spec.ts`. Not checked by hand: importing the file into Google/Apple/Outlook calendar apps and the alarm firing.
 
 ## Implemented (step 7, Capacitor 앱 + 안드로이드 위젯 — 코드만, 빌드·실행 미확인)

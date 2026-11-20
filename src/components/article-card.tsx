@@ -2,7 +2,6 @@ import { timeAgo, type ArticleCard } from "@/lib/news/queries";
 import { CardImage } from "./card-image";
 import { InsightBlock } from "./insight-block";
 import { OriginalLink } from "./view-tracker";
-import { ReminderMenu } from "./reminder-menu";
 import { SaveButton } from "./save-button";
 import { ShareButton } from "./share-button";
 
@@ -42,7 +41,6 @@ export function ArticleCardItem({
         </OriginalLink>
         <SaveButton articleId={a.id} initialSaved={saved} removeOnUnsave={removeOnUnsave} />
         <ShareButton path={`/articles/${a.id}`} title={a.titleKo} text={a.summaryKo} />
-        <ReminderMenu articleId={a.id} />
       </div>
     </li>
   );
