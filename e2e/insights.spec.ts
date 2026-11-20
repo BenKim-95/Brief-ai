@@ -29,6 +29,30 @@ test.describe("AI 해설 3줄", () => {
     expect((await request.post("/api/news/insights", { headers: { "x-admin-token": ADMIN_TOKEN } })).status()).toBe(503);
   });
 
+  test("시간 예산을 넘기면 새 묶음을 시작하지 않고, 남은 수를 알려 준다(504 방지)", async () => {
+    const client = {
+      messages: {
+        create: async (args: { messages: { content: string }[] }) => {
+          const rows = [...args.messages[0].content.matchAll(/\[key (\d+)\]/g)];
+          const out = rows.map((m) => ({ key: Number(m[1]), oneLineKo: "a", learnedKo: "b", perspectiveKo: "c" }));
+          return { content: [{ type: "text", text: JSON.stringify(out) }], stop_reason: "end_turn" };
+        },
+      },
+    } as never;
+    const missing = (await db.select().from(s.articles).where(like(s.articles.titleKo, `${E2E_PREFIX}%`))).filter((a) => a.insightOneLine === null);
+    try {
+      // 예산 0 + 동시 1개 → 첫 묶음(5개)만 처리하고 멈춘다.
+      const r = await backfillInsights(db, client, { budgetMs: 0, concurrency: 1 });
+      expect(r.filled).toBe(5);
+      expect(r.remaining).toBe(missing.length - 5);
+      expect(r.failedBatches).toEqual([]);
+    } finally {
+      for (const a of missing) {
+        await db.update(s.articles).set({ insightOneLine: null, insightLearned: null, insightPerspective: null }).where(eq(s.articles.id, a.id));
+      }
+    }
+  });
+
   test("해설이 없는 기존 기사만 채우고, 이미 있는 해설은 건드리지 않는다", async () => {
     test.setTimeout(60_000);
     const asked: string[] = [];
