@@ -48,13 +48,14 @@ function Header() {
         >
           저장함
         </Link>
-        <Link
-          href="/notifications"
-          className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm text-sub"
-        >
-          알림
-        </Link>
+        {/* 알림 설정은 일단 관리자에게만 보인다. 알림 규칙이 정해지면 다시 모두에게 연다. */}
         <AdminOnly>
+          <Link
+            href="/notifications"
+            className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm text-sub"
+          >
+            알림
+          </Link>
           <Link
             href="/admin/sources"
             className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm text-sub"

@@ -13,13 +13,13 @@ async function openHome(page: Page) {
 }
 
 test.describe("홈: 관리자 전용 항목", () => {
-  test("토큰이 없으면 설정 버튼, 뉴스 가져오기, 토큰 입력칸이 모두 보이지 않는다(저장함·알림은 보인다)", async ({ page }) => {
+  test("토큰이 없으면 설정·알림 버튼, 뉴스 가져오기, 토큰 입력칸이 모두 보이지 않는다(저장함은 보인다)", async ({ page }) => {
     await openHome(page);
     await expect(settingsLink(page)).toHaveCount(0);
     await expect(fetchNews(page)).toHaveCount(0);
     await expect(tokenField(page)).toHaveCount(0);
     await expect(page.getByRole("link", { name: "저장함" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "알림", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "알림", exact: true })).toHaveCount(0);
   });
 
   test("틀린 토큰이 저장돼 있어도 보이지 않는다", async ({ page }) => {
@@ -36,6 +36,7 @@ test.describe("홈: 관리자 전용 항목", () => {
     await signInAsAdmin(page);
     await openHome(page);
     await expect(settingsLink(page)).toBeVisible();
+    await expect(page.getByRole("link", { name: "알림", exact: true })).toBeVisible(); // 관리자에게만 보인다
     await expect(fetchNews(page)).toBeVisible();
     await expect(fetchNews(page)).toBeEnabled();
     await expect(tokenField(page)).toHaveCount(0); // 토큰이 이미 있으니 입력칸은 필요 없다
