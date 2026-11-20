@@ -3,6 +3,7 @@ import Link from "next/link";
 /** 홈과 각 모아보기 화면 위쪽에 놓는 바로가기. 새 화면이 생기면 여기에만 더하면 된다. */
 export const MAIN_NAV = [
   { href: "/", label: "뉴스 피드" },
+  { href: "/five-minute", label: "5분 이슈" },
   { href: "/for-me", label: "나와 관련된 소식" },
 ] as const;
 

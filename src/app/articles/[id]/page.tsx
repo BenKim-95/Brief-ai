@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { ArticleCardItem } from "@/components/article-card";
+import { ViewPing } from "@/components/view-tracker";
 import { getDb, hasDatabaseUrl } from "@/db";
 import { getArticleCard } from "@/lib/news/queries";
 import { savedIdSet } from "@/lib/news/saved";
@@ -51,6 +52,7 @@ async function ArticleView({ params }: { params: Promise<{ id: string }> }) {
   const saved = (await savedIdSet(db, [article.id], await readVisitorId())).has(article.id);
   return (
     <ul>
+      <ViewPing articleId={article.id} />
       <ArticleCardItem article={article} saved={saved} />
     </ul>
   );
