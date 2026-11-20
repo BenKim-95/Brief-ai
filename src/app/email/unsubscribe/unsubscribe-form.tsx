@@ -2,11 +2,13 @@
 
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { useBusy } from "@/components/busy-overlay";
 
 /** 메일 앱이 링크를 미리 열어 봐도 해제되지 않도록, 버튼을 눌러야 해제한다. */
 export function UnsubscribeForm() {
   const token = useSearchParams().get("token") ?? "";
   const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
+  useBusy(state === "busy", "처리 중이에요…");
 
   if (!token) {
     return <p className="text-sm text-sub">링크가 올바르지 않아요. 메일 속 링크를 다시 눌러 주세요.</p>;

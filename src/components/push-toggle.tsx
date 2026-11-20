@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useBusy } from "./busy-overlay";
 import { ADMIN_TOKEN_KEY } from "@/app/admin/admin-api";
 
 type Status = "loading" | "unsupported" | "denied" | "off" | "on";
@@ -40,6 +41,7 @@ export function PushToggle() {
   const [status, setStatus] = useState<Status>("loading");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  useBusy(busy, "처리 중이에요…");
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
   useEffect(() => {

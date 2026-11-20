@@ -25,7 +25,10 @@ function Inner() {
     setMessage("");
     setProblems([]);
     try {
-      const r = await call<FetchResult>("/api/news/fetch", { method: "POST" });
+      const r = await call<FetchResult>("/api/news/fetch", {
+        method: "POST",
+        busyLabel: "새 소식을 가져오는 중이에요… (최대 1분)",
+      });
       setProblems([
         ...r.sources.filter((s) => !s.ok).map((s) => `${s.name}: ${s.error}`),
         ...r.failedBatches,

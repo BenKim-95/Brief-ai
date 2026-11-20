@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useBusy } from "./busy-overlay";
 import { PRESET_LABELS, REMIND_PRESETS } from "@/lib/news/reminder";
 
 /**
@@ -12,6 +13,7 @@ export function ReminderMenu({ articleId }: { articleId: number }) {
   const [date, setDate] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  useBusy(busy, "캘린더 파일을 만드는 중이에요…");
 
   async function download(query: string) {
     setBusy(true);

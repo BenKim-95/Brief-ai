@@ -25,7 +25,10 @@ function Inner() {
     setMessage("");
     setFailures([]);
     try {
-      const r = await call<FetchResult>("/api/housing/fetch", { method: "POST" });
+      const r = await call<FetchResult>("/api/housing/fetch", {
+        method: "POST",
+        busyLabel: "청약 정보를 가져오는 중이에요…",
+      });
       const failed = r.results.filter((x) => !x.ok);
       setFailures(failed);
       setMessage(
