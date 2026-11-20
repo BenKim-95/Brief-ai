@@ -5,6 +5,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   serial,
   text,
   timestamp,
@@ -109,6 +110,22 @@ export const visitorProfiles = pgTable("visitor_profiles", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * 5분 이슈용 조회 기록. 한 방문자가 같은 기사를 하루에 몇 번 열어도 1회로 센다.
+ * day는 한국 시간 기준 날짜. 30일이 지난 기록은 정리한다.
+ */
+export const articleViews = pgTable(
+  "article_views",
+  {
+    articleId: integer("article_id")
+      .notNull()
+      .references(() => articles.id, { onDelete: "cascade" }),
+    visitorId: text("visitor_id").notNull(),
+    day: date("day", { mode: "string" }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.articleId, t.visitorId, t.day] }), index("article_views_day_idx").on(t.day)],
+);
 
 export const pushSubscriptions = pgTable("push_subscriptions", {
   id: serial("id").primaryKey(),

@@ -1,6 +1,7 @@
 import { timeAgo, type ArticleCard } from "@/lib/news/queries";
 import { CardImage } from "./card-image";
 import { InsightBlock } from "./insight-block";
+import { OriginalLink } from "./view-tracker";
 import { ReminderMenu } from "./reminder-menu";
 import { SaveButton } from "./save-button";
 import { ShareButton } from "./share-button";
@@ -32,14 +33,13 @@ export function ArticleCardItem({
         perspective={a.insightPerspective}
       />
       <div className="mt-4 flex flex-wrap items-start gap-2">
-        <a
+        <OriginalLink
+          articleId={a.id}
           href={a.url}
-          target="_blank"
-          rel="noopener noreferrer"
           className="inline-flex min-h-11 items-center rounded-full border border-brand px-4 text-sm font-bold text-brand"
         >
           원문 보기 ↗
-        </a>
+        </OriginalLink>
         <SaveButton articleId={a.id} initialSaved={saved} removeOnUnsave={removeOnUnsave} />
         <ShareButton path={`/articles/${a.id}`} title={a.titleKo} text={a.summaryKo} />
         <ReminderMenu articleId={a.id} />
