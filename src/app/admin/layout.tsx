@@ -29,7 +29,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             청약 카테고리
           </Link>
           <Link href="/admin/community" className="underline">
-            커뮤니티 신고
+            제보 기사 신고
           </Link>
           <Link href="/housing" className="underline">
             청약 화면 →

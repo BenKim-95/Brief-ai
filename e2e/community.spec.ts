@@ -26,9 +26,9 @@ async function writePost(page: Page, title: string, body: string) {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
 }
 
-test("홈의 커뮤니티 버튼으로 가면 빈 목록 안내가 보인다", async ({ page }) => {
+test("홈의 제보 기사 버튼으로 가면 빈 목록 안내가 보인다", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("navigation", { name: "둘러보기" }).getByRole("link", { name: "커뮤니티" }).click();
+  await page.getByRole("navigation", { name: "둘러보기" }).getByRole("link", { name: "제보 기사" }).click();
   await expect(page).toHaveURL(/\/community$/);
   await expect(page.getByText("아직 올라온 글이 없어요")).toBeVisible();
 });

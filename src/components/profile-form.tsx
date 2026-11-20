@@ -75,7 +75,7 @@ export function ProfileForm({
           placeholder={placeholderName}
           className="min-h-11 w-full rounded-xl border border-line bg-background px-3 text-[15px]"
         />
-        <p className="mt-1 text-xs text-sub">커뮤니티 글과 댓글에 보여요. 비우면 &quot;{placeholderName}&quot;으로 나와요.</p>
+        <p className="mt-1 text-xs text-sub">제보 기사의 글과 댓글에 보여요. 비우면 &quot;{placeholderName}&quot;으로 나와요.</p>
       </div>
 
       <fieldset>
