@@ -1,5 +1,6 @@
 import { timeAgo, type ArticleCard } from "@/lib/news/queries";
 import { CardImage } from "./card-image";
+import { InsightBlock } from "./insight-block";
 import { ReminderMenu } from "./reminder-menu";
 import { SaveButton } from "./save-button";
 import { ShareButton } from "./share-button";
@@ -25,6 +26,11 @@ export function ArticleCardItem({
       </p>
       <h3 className="mt-2 text-[17px] font-bold leading-[1.45]">{a.titleKo}</h3>
       <p className="mt-2 text-[15px] leading-[1.65] text-sub">{a.summaryKo}</p>
+      <InsightBlock
+        oneLine={a.insightOneLine}
+        learned={a.insightLearned}
+        perspective={a.insightPerspective}
+      />
       <div className="mt-4 flex flex-wrap items-start gap-2">
         <a
           href={a.url}

@@ -12,15 +12,27 @@ export type RawArticle = {
 
 export type CategoryInfo = { id: number; name: string; description: string };
 
+const insightText = z.string().trim().min(1).max(200);
+
 const resultSchema = z.array(
   z.object({
     key: z.number().int(),
     titleKo: z.string().trim().min(1).max(200),
     summaryKo: z.string().trim().min(1).max(600),
     categoryId: z.number().int().nullable(),
+    // 해설 3줄은 없거나 형식이 달라도 기사 저장 자체를 막지 않는다(없으면 null로 저장).
+    oneLineKo: insightText.optional().catch(undefined),
+    learnedKo: insightText.optional().catch(undefined),
+    perspectiveKo: insightText.optional().catch(undefined),
   }),
 );
 export type Enriched = z.infer<typeof resultSchema>[number];
+
+/** 카드 아래 "AI 해설" 3줄을 만드는 규칙. 새 기사 요약과 기존 기사 채우기가 같은 규칙을 쓴다. */
+const INSIGHT_RULES = `- oneLineKo: 소식의 핵심을 담은 한 줄 요약(한 문장, 60자 안팎).
+- learnedKo: 이 소식으로 알게 된 점 한 문장. 제목과 발췌문에서 바로 알 수 있는 사실만 써요.
+- perspectiveKo: 같은 소식을 다른 시각(예: 소비자·기업·정부·지역·장기적 관점 중 어울리는 것)에서 보면 어떤 점을 함께 살펴볼 수 있는지 한 문장. 한쪽 편을 들거나 누가 옳다고 판단하지 말고, 확정되지 않은 것은 "~일 수 있어요"처럼 가능성으로 써요.
+- 세 줄 모두 "~해요" 체. 투자·매수 권유, 가격·주가 전망, 정치적 가치판단은 쓰지 마세요. 제공된 내용에 없는 사실은 만들지 마세요.`;
 
 const SYSTEM = `당신은 뉴스 카드를 만드는 편집 도우미예요. 기사 목록을 받아 각각에 대해 JSON만 돌려주세요.
 규칙:
@@ -28,7 +40,8 @@ const SYSTEM = `당신은 뉴스 카드를 만드는 편집 도우미예요. 기
 - summaryKo: 제공된 제목과 발췌문에 있는 내용만으로 2~3문장 요약. 없는 내용을 추가하지 마세요. "~해요" 체를 써요. 발췌문이 없으면 제목만 풀어서 한 문장으로 써요.
 - 투자·매수 권유, 가격 전망, 정치적 가치판단 표현은 쓰지 마세요.
 - categoryId: 주어진 카테고리 중 가장 알맞은 id. 맞는 것이 없으면 null.
-출력: [{"key":0,"titleKo":"...","summaryKo":"...","categoryId":1}, ...] 형태의 JSON 배열만. 설명이나 코드블록은 쓰지 마세요.`;
+${INSIGHT_RULES}
+출력: [{"key":0,"titleKo":"...","summaryKo":"...","categoryId":1,"oneLineKo":"...","learnedKo":"...","perspectiveKo":"..."}, ...] 형태의 JSON 배열만. 설명이나 코드블록은 쓰지 마세요.`;
 
 function extractJson(text: string): unknown {
   const start = text.indexOf("[");
@@ -93,6 +106,46 @@ export async function enrichBatch(
       ...r,
       categoryId: r.categoryId !== null && valid.has(r.categoryId) ? r.categoryId : null,
     }));
+}
+
+// --- 이미 저장된 기사에 AI 해설 3줄 채우기 (제목·요약만 보고, 기사 본문은 쓰지 않는다) ---
+
+const insightsSchema = z.array(
+  z.object({ key: z.number().int(), oneLineKo: insightText, learnedKo: insightText, perspectiveKo: insightText }),
+);
+export type Insight = { oneLineKo: string; learnedKo: string; perspectiveKo: string };
+
+const INSIGHT_SYSTEM = `당신은 뉴스 카드에 붙일 짧은 해설을 쓰는 편집 도우미예요. 기사 목록(한국어 제목·요약)을 받아 각각에 대해 JSON만 돌려주세요.
+규칙:
+${INSIGHT_RULES}
+출력: [{"key":0,"oneLineKo":"...","learnedKo":"...","perspectiveKo":"..."}, ...] 형태의 JSON 배열만. 설명이나 코드블록은 쓰지 마세요.`;
+
+export type ArticleForInsight = { key: number; titleKo: string; summaryKo: string };
+
+/** 한 묶음의 해설을 만든다. API·형식 오류는 던지고(호출한 쪽이 그 묶음을 건너뛴다), 모델이 빠뜨린 기사는 결과에서 빠진다. */
+export async function generateInsights(
+  client: Anthropic,
+  items: ArticleForInsight[],
+): Promise<Map<number, Insight>> {
+  const out = new Map<number, Insight>();
+  if (items.length === 0) return out;
+  const msg = await client.messages.create({
+    model: NEWS_MODEL,
+    max_tokens: 4096,
+    system: [{ type: "text", text: INSIGHT_SYSTEM, cache_control: { type: "ephemeral" } }],
+    messages: [
+      {
+        role: "user",
+        content: items.map((a) => `[key ${a.key}]\n제목: ${a.titleKo}\n요약: ${a.summaryKo}`).join("\n\n"),
+      },
+    ],
+  });
+  const text = msg.content.map((b) => (b.type === "text" ? b.text : "")).join("");
+  const keys = new Set(items.map((a) => a.key));
+  for (const r of insightsSchema.parse(extractJson(text))) {
+    if (keys.has(r.key)) out.set(r.key, { oneLineKo: r.oneLineKo, learnedKo: r.learnedKo, perspectiveKo: r.perspectiveKo });
+  }
+  return out;
 }
 
 // --- 제목만 보고 카테고리 나누기 (새 기사가 한 번에 처리할 수보다 많을 때, 무엇을 먼저 가져올지 고르는 데만 쓴다) ---

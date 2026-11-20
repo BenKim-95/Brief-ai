@@ -89,6 +89,14 @@ export default async function globalSetup() {
       titleOrig: `E2E original ${i}`,
       titleKo: `${E2E_PREFIX} ${label} 소식 ${n}`,
       summaryKo: `${label} 관련 테스트 요약 ${n}이에요.`,
+      // 소식 1에만 AI 해설 3줄이 있다(나머지는 아직 없는 기존 기사처럼 비워 둔다).
+      ...(i === 0
+        ? {
+            insightOneLine: "한 줄 요약 테스트예요.",
+            insightLearned: "알게 된 점 테스트예요.",
+            insightPerspective: "다른 시각 테스트예요.",
+          }
+        : {}),
       imageUrl: i === 0 ? E2E_IMAGE_OK : i === 1 ? E2E_IMAGE_BROKEN : null,
       categoryId: isModel ? model.id : policy.id,
       // 번호가 작을수록 최신 → 1페이지에 모델 소식 1~4, 정책 소식 1~2가 온다.

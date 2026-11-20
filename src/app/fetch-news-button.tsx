@@ -60,6 +60,30 @@ function Inner() {
     }
   }
 
+  async function fillInsights() {
+    setBusy(true);
+    setMessage("");
+    setProblems([]);
+    try {
+      const r = await call<{ filled: number; remaining: number; failedBatches: string[] }>("/api/news/insights", {
+        method: "POST",
+        busyLabel: "AI 해설을 만드는 중이에요… (최대 1분)",
+      });
+      setProblems(r.failedBatches);
+      setMessage(
+        r.filled === 0 && r.remaining === 0
+          ? "해설이 필요한 소식이 없어요."
+          : `소식 ${r.filled}개에 AI 해설을 채웠어요.` +
+              (r.remaining > 0 ? ` ${r.remaining}개가 더 남았어요. 한 번 더 누르면 이어서 채워요.` : ""),
+      );
+      router.refresh();
+    } catch (e) {
+      setMessage(`⚠ ${(e as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="mt-3">
       <button
@@ -68,7 +92,15 @@ function Inner() {
         disabled={busy || !token}
         className="flex min-h-12 w-full items-center justify-center rounded-full border border-brand px-5 text-base font-bold text-brand disabled:opacity-50"
       >
-        {busy ? "가져오는 중이에요… (최대 1분)" : "뉴스 가져오기"}
+        {busy ? "처리 중이에요… (최대 1분)" : "뉴스 가져오기"}
+      </button>
+      <button
+        type="button"
+        onClick={() => void fillInsights()}
+        disabled={busy || !token}
+        className="mt-2 flex min-h-11 w-full items-center justify-center rounded-full border border-line px-5 text-sm text-sub disabled:opacity-50"
+      >
+        AI 해설 채우기 (해설이 없는 소식)
       </button>
       <div aria-live="polite" className="mt-2 text-sm">
         {message && <p className="text-ink">{message}</p>}

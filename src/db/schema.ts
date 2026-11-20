@@ -43,6 +43,10 @@ export const articles = pgTable(
     titleOrig: text("title_orig").notNull(),
     titleKo: text("title_ko").notNull(),
     summaryKo: text("summary_ko").notNull(),
+    /** Claude가 제목·요약만 보고 만든 한 줄 해설 3가지. null = 아직 안 만들었어요(기존 기사). */
+    insightOneLine: text("insight_one_line"),
+    insightLearned: text("insight_learned"),
+    insightPerspective: text("insight_perspective"),
     /** 카드에 보여줄 대표 이미지 주소 (https만, 파일은 저장하지 않음). null = 사진 없음. */
     imageUrl: text("image_url"),
     /** null = 미분류 (also what a deleted category falls back to). */

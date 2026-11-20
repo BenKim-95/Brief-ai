@@ -9,6 +9,10 @@ export type ArticleCard = {
   url: string;
   titleKo: string;
   summaryKo: string;
+  /** AI 해설 3줄(제목·요약만 보고 Claude가 만든 것). 아직 없으면 null. */
+  insightOneLine: string | null;
+  insightLearned: string | null;
+  insightPerspective: string | null;
   imageUrl: string | null;
   categoryId: number | null;
   categoryName: string | null;
@@ -53,6 +57,9 @@ export async function listArticles(
       url: articles.url,
       titleKo: articles.titleKo,
       summaryKo: articles.summaryKo,
+      insightOneLine: articles.insightOneLine,
+      insightLearned: articles.insightLearned,
+      insightPerspective: articles.insightPerspective,
       imageUrl: articles.imageUrl,
       categoryId: articles.categoryId,
       categoryName: categories.name,
@@ -100,11 +107,14 @@ export function timeAgo(d: Date, now = new Date()): string {
   return `${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일`;
 }
 
-const cardColumns = {
+export const cardColumns = {
   id: articles.id,
   url: articles.url,
   titleKo: articles.titleKo,
   summaryKo: articles.summaryKo,
+  insightOneLine: articles.insightOneLine,
+  insightLearned: articles.insightLearned,
+  insightPerspective: articles.insightPerspective,
   imageUrl: articles.imageUrl,
   categoryId: articles.categoryId,
   categoryName: categories.name,
