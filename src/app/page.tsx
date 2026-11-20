@@ -41,12 +41,18 @@ function Header() {
           <p className="text-xs text-sub">검증하고, 골라주고, 챙겨주는 정보 비서</p>
         </div>
       </div>
-      <nav aria-label="바로가기" className="flex gap-2">
+      <nav aria-label="바로가기" className="flex flex-wrap justify-end gap-2">
         <Link
           href="/saved"
           className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm text-sub"
         >
           저장함
+        </Link>
+        <Link
+          href="/my"
+          className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm text-sub"
+        >
+          마이페이지
         </Link>
         {/* 알림 설정은 일단 관리자에게만 보인다. 알림 규칙이 정해지면 다시 모두에게 연다. */}
         <AdminOnly>
