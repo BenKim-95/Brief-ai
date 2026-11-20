@@ -5,7 +5,7 @@ export const MAIN_NAV = [
   { href: "/", label: "뉴스 피드" },
   { href: "/five-minute", label: "5분 이슈" },
   { href: "/for-me", label: "나와 관련된 소식" },
-  { href: "/community", label: "커뮤니티" },
+  { href: "/community", label: "제보 기사" },
 ] as const;
 
 export type MainNavHref = (typeof MAIN_NAV)[number]["href"];

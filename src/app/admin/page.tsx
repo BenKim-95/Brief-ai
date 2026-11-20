@@ -6,7 +6,7 @@ const TOOLS = [
   { href: "/admin/categories", title: "뉴스 카테고리", desc: "분류 이름과 순서를 바꿔요." },
   { href: "/admin/housing-feeds", title: "청약 API", desc: "청약홈 API 종류를 관리해요." },
   { href: "/admin/housing-categories", title: "청약 카테고리", desc: "청약 공고 분류와 키워드를 바꿔요." },
-  { href: "/admin/community", title: "커뮤니티 신고", desc: "신고로 가려진 글·댓글을 되살리거나 지워요." },
+  { href: "/admin/community", title: "제보 기사 신고", desc: "신고로 가려진 글·댓글을 되살리거나 지워요." },
   { href: "/notifications", title: "알림 설정", desc: "푸시·이메일 알림을 켜고 시험해요." },
 ];
 

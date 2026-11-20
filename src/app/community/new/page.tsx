@@ -32,7 +32,7 @@ export default function NewPostPage({ searchParams }: PageProps<"/community/new"
             href="/community"
             className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm text-sub"
           >
-            ← 커뮤니티
+            ← 제보 기사
           </Link>
         </header>
         <h1 className="mt-5 mb-4 text-[26px] font-bold leading-[1.35]">글쓰기</h1>

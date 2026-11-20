@@ -9,7 +9,7 @@ import { POSTS_PER_PAGE } from "@/lib/community/rules";
 import { timeAgo } from "@/lib/news/queries";
 import { readVisitorId } from "@/lib/visitor";
 
-export const metadata = { title: "커뮤니티 · 브리프" };
+export const metadata = { title: "제보 기사 · 브리프" };
 
 type Search = { [key: string]: string | string[] | undefined };
 
@@ -78,7 +78,7 @@ export default function CommunityPage({ searchParams }: PageProps<"/community">)
             글쓰기
           </Link>
         </header>
-        <h1 className="mt-5 text-[26px] font-bold leading-[1.35]">커뮤니티</h1>
+        <h1 className="mt-5 text-[26px] font-bold leading-[1.35]">제보 기사</h1>
         <p className="mt-1 text-sm text-sub">함께 읽은 소식에 대해 이야기를 나눠요.</p>
         <MainNav current="/community" />
         <div className="mt-4">

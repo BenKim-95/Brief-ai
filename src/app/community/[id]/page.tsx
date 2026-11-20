@@ -10,7 +10,7 @@ import { timeAgo } from "@/lib/news/queries";
 import { idParamSchema } from "@/lib/schemas";
 import { readVisitorId } from "@/lib/visitor";
 
-export const metadata = { title: "커뮤니티 글 · 브리프" };
+export const metadata = { title: "제보 기사 글 · 브리프" };
 
 async function Detail({ params }: { params: Promise<{ id: string }> }) {
   const parsed = idParamSchema.safeParse((await params).id);
@@ -88,7 +88,7 @@ export default function CommunityPostPage({ params }: { params: Promise<{ id: st
             href="/community"
             className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm text-sub"
           >
-            ← 커뮤니티
+            ← 제보 기사
           </Link>
         </header>
         <Suspense fallback={<p className="pt-6 text-sm text-sub">불러오는 중이에요…</p>}>
