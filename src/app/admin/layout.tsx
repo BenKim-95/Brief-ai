@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { AdminOnly } from "@/components/admin-only";
 import { AdminApiProvider } from "./admin-api";
 import { TokenField } from "./token-field";
 
@@ -9,6 +10,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <div className="mx-auto max-w-xl px-4 py-6">
         <h1 className="mb-4 text-xl font-bold">관리</h1>
         <nav className="mb-4 flex flex-wrap gap-x-4 gap-y-2 text-base">
+          <Link href="/admin" className="underline">
+            관리 메뉴
+          </Link>
+          <Link href="/admin/errors" className="underline">
+            오류·이슈
+          </Link>
           <Link href="/admin/sources" className="underline">
             소스
           </Link>
@@ -29,7 +36,16 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </Link>
         </nav>
         <TokenField />
-        {children}
+        {/* 관리 화면은 관리자만 쓴다. 토큰이 없거나 틀리면 아래 안내만 보이고, 토큰을 맞게 넣으면 바로 나타난다. */}
+        <AdminOnly
+          fallback={
+            <p role="note" className="rounded-lg border p-4 text-sm">
+              관리자만 쓸 수 있는 화면이에요. 위 칸에 관리 토큰을 입력해 주세요.
+            </p>
+          }
+        >
+          {children}
+        </AdminOnly>
       </div>
     </AdminApiProvider>
   );

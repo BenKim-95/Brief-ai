@@ -175,6 +175,31 @@ export const communityReports = pgTable(
   (t) => [primaryKey({ columns: [t.kind, t.targetId, t.visitorId] })],
 );
 
+/**
+ * 배포 후 웹·앱·서버에서 난 오류. 같은 원인은 오류 코드(E-WEB-xxxxx 등) 하나로 합쳐 횟수를 센다.
+ * 주소의 쿼리, IP, 쿠키는 저장하지 않는다. 보고 방법은 src/lib/errors/ 참고.
+ */
+export const errorEvents = pgTable(
+  "error_events",
+  {
+    id: serial("id").primaryKey(),
+    code: text("code").notNull().unique(),
+    /** "web" | "app" | "server" */
+    source: text("source").notNull(),
+    message: text("message").notNull(),
+    stack: text("stack"),
+    path: text("path"),
+    userAgent: text("user_agent"),
+    count: integer("count").notNull().default(1),
+    /** "open" | "resolved" | "ignored" */
+    status: text("status").notNull().default("open"),
+    firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  },
+  (t) => [index("error_events_last_seen_idx").on(t.lastSeenAt)],
+);
+
 export const pushSubscriptions = pgTable("push_subscriptions", {
   id: serial("id").primaryKey(),
   endpoint: text("endpoint").notNull().unique(),

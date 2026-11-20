@@ -92,6 +92,13 @@
       "when": 1795182413864,
       "tag": "0012_zippy_zombie",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1795183462182,
+      "tag": "0013_rare_viper",
+      "breakpoints": true
     }
   ]
 }
