@@ -25,7 +25,8 @@ export function ArticleCardItem({
         {a.sourceName ? ` · ${a.sourceName}` : ""} · {timeAgo(when)}
       </p>
       <h3 className="mt-2 text-[17px] font-bold leading-[1.45]">{a.titleKo}</h3>
-      <p className="mt-2 text-[15px] leading-[1.65] text-sub">{a.summaryKo}</p>
+      {/* 한 줄 요약이 있으면 내용 요약은 겹치므로 생략한다. 아직 해설이 없는 기존 기사만 요약을 보여 준다. */}
+      {!a.insightOneLine && <p className="mt-2 text-[15px] leading-[1.65] text-sub">{a.summaryKo}</p>}
       <InsightBlock
         oneLine={a.insightOneLine}
         learned={a.insightLearned}
