@@ -3,6 +3,7 @@
 import { ChevronRight, CircleCheck, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { FetchNewsButton } from "@/app/fetch-news-button";
 import { FetchButton as FetchHousingButton } from "@/app/housing/fetch-button";
 import { dayLabel, dayLong, deltaText, n } from "@/lib/traffic/format";
 import type { TrafficReport } from "@/lib/traffic/store";
@@ -146,9 +147,9 @@ export default function AdminDashboard() {
           바로 하기
         </h2>
         <p className="mt-0.5 text-sm text-sub">매일 아침 자동으로도 가져와요. 지금 바로 가져오고 싶을 때 쓰세요.</p>
-        {/* 뉴스 가져오기·AI 해설 채우기 버튼(FetchNewsButton)은 화면에서 숨겼다. 다시 쓰려면 여기에 <FetchNewsButton /> 을 넣는다. */}
         <div className="mt-3">
           <FetchHousingButton />
+          <FetchNewsButton />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <Link href="/notifications" className="flex min-h-12 items-center justify-center rounded-xl border border-line bg-surface px-3 text-sm font-bold">

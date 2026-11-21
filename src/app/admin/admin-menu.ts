@@ -62,5 +62,3 @@ export const ADMIN_GROUPS: { name: string; items: AdminMenuItem[] }[] = [
 
 /** 위쪽 탭 순서. */
 export const ADMIN_TABS: AdminMenuItem[] = [DASHBOARD_ITEM, ...ADMIN_GROUPS.flatMap((g) => g.items)];
-
-// 뉴스 가져오기 · AI 해설 채우기는 화면에서 숨겼다(2026-11-21). 다시 쓰려면 대시보드(page.tsx)에 <FetchNewsButton /> 을 넣는다.
