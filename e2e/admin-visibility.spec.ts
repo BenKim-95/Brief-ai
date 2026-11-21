@@ -28,14 +28,31 @@ test.describe("홈에는 관리자 버튼이 없다 (알림·설정·뉴스 가�
 });
 
 test.describe("관리 메뉴(/admin): 관리자만 보고 쓸 수 있다", () => {
-  test("뉴스 가져오기·AI 해설 채우기 버튼은 토큰이 있어도 어디에도 없다", async ({ page }) => {
+  test("뉴스 가져오기 버튼은 관리 대시보드에만 있고(청약 버튼 아래), 홈에는 없다. AI 해설 채우기 버튼은 어디에도 없다", async ({ page }) => {
     await signInAsAdmin(page);
+    await page.goto("/admin");
+    await expect(fetchHousing(page)).toBeVisible();
+    await expect(fetchNews(page)).toBeVisible();
+    const housingBox = (await fetchHousing(page).boundingBox())!;
+    const newsBox = (await fetchNews(page).boundingBox())!;
+    expect(newsBox.y).toBeGreaterThan(housingBox.y); // 청약 버튼 밑
+    await page.goto("/");
+    await page.waitForTimeout(800);
+    await expect(fetchNews(page)).toHaveCount(0);
     for (const path of ["/admin", "/"]) {
       await page.goto(path);
-      await page.waitForTimeout(800);
-      await expect(page.getByRole("button", { name: "뉴스 가져오기" })).toHaveCount(0);
       await expect(page.getByRole("button", { name: /AI 해설 채우기/ })).toHaveCount(0);
     }
+  });
+
+  test("뉴스 가져오기를 누르면 서버에 요청하고 결과(여기서는 키가 없다는 안내)를 보여 준다", async ({ page }) => {
+    await signInAsAdmin(page);
+    await page.goto("/admin");
+    const requested = page.waitForResponse((r) => r.url().endsWith("/api/news/fetch") && r.request().method() === "POST");
+    await fetchNews(page).click();
+    expect((await requested).status()).toBe(503); // E2E 는 Claude 키를 비워 두므로 실제 호출 없이 503
+    await expect(page.getByText(/ANTHROPIC_API_KEY/)).toBeVisible();
+    await expect(fetchNews(page)).toBeEnabled();
   });
 
   test("토큰이 없으면 버튼이 보이지 않고 안내만 나온다", async ({ page }) => {
