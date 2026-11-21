@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_KR } from "next/font/google";
+import { Suspense } from "react";
 import { BusyOverlay } from "@/components/busy-overlay";
 import { ErrorReporter } from "@/components/error-reporter";
 import { NativeLinkHandler } from "@/components/native-link-handler";
 import { NavigationProgress } from "@/components/navigation-progress";
 import { PwaClient } from "@/components/pwa-client";
+import { VisitTracker } from "@/components/visit-tracker";
 import "./globals.css";
 
 const plex = IBM_Plex_Sans_KR({
@@ -30,6 +32,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <NavigationProgress />
         <BusyOverlay />
         <ErrorReporter />
+        <Suspense fallback={null}>
+          <VisitTracker />
+        </Suspense>
         {children}
         <PwaClient />
         <NativeLinkHandler />

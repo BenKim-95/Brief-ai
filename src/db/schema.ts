@@ -7,6 +7,7 @@ import {
   pgTable,
   primaryKey,
   serial,
+  smallint,
   text,
   timestamp,
   unique,
@@ -198,6 +199,26 @@ export const errorEvents = pgTable(
     resolvedAt: timestamp("resolved_at", { withTimezone: true }),
   },
   (t) => [index("error_events_last_seen_idx").on(t.lastSeenAt)],
+);
+
+/**
+ * 사이트 방문 기록(화면을 열 때마다 1건). 하루 방문자수·페이지뷰·시간대·인기 화면을 세는 데 쓴다.
+ * day/hour 는 한국 시간 기준. 방문자는 익명 쿠키 번호(`v:<uuid>`)로만 구분하고 IP·주소의 쿼리는 저장하지 않는다.
+ * 관리 화면(/admin)과 봇은 세지 않는다. 90일이 지난 기록은 뉴스 크론이 정리한다.
+ */
+export const siteVisits = pgTable(
+  "site_visits",
+  {
+    id: serial("id").primaryKey(),
+    day: date("day", { mode: "string" }).notNull(),
+    hour: smallint("hour").notNull(),
+    visitorId: text("visitor_id").notNull(),
+    /** 숫자 구간은 :id 로 합친 화면 경로 (예: /articles/:id) */
+    path: text("path").notNull(),
+    /** "web" | "app" */
+    source: text("source").notNull().default("web"),
+  },
+  (t) => [index("site_visits_day_idx").on(t.day)],
 );
 
 export const pushSubscriptions = pgTable("push_subscriptions", {

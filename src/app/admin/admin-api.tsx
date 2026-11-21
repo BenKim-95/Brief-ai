@@ -43,6 +43,21 @@ export function AdminApiProvider({ children }: { children: ReactNode }) {
     setReady(true);
   }, []);
 
+  // 다른 탭이나 다른 곳에서 토큰이 바뀌면 따라간다(잠금 화면이 다시 확인할 수 있게).
+  useEffect(() => {
+    function sync() {
+      try {
+        setTokenState(localStorage.getItem(STORAGE_KEY) ?? sessionStorage.getItem(STORAGE_KEY) ?? "");
+      } catch {}
+    }
+    window.addEventListener(ADMIN_TOKEN_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(ADMIN_TOKEN_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+
   const setToken = useCallback((t: string) => {
     setTokenState(t);
     if (!t) {

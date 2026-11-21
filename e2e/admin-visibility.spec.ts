@@ -55,7 +55,8 @@ test.describe("관리 메뉴(/admin): 관리자만 보고 쓸 수 있다", () =>
   test("관리 화면에서 토큰을 입력하면 청약 정보 가져오기와 알림 설정이 나타난다", async ({ page }) => {
     await page.goto("/admin");
     await expect(fetchHousing(page)).toHaveCount(0);
-    await tokenField(page).fill(ADMIN_TOKEN); // 입력하면 브라우저에 저장된다
+    await tokenField(page).fill(ADMIN_TOKEN);
+    await page.getByRole("button", { name: "잠금 해제" }).click(); // 서버가 토큰을 확인하면 열리고 브라우저에 저장된다
     await expect(fetchHousing(page)).toBeVisible();
     await expect(fetchHousing(page)).toBeEnabled();
     await page.getByRole("link", { name: /알림 설정/ }).first().click();

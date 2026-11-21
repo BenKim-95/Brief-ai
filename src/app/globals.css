@@ -186,6 +186,8 @@
   --color-brand-weak: var(--brand-weak);
   --color-urgent: var(--urgent);
   --color-fore: var(--fore);
+  --color-ok: var(--ok);
+  --color-no: var(--no);
 }
 
 body {
